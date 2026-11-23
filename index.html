@@ -1,0 +1,3195 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="漢字鬼斬り帖"><link rel="apple-touch-icon" href="assets/hero_t5.png"><style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>漢字鬼斬り帖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Klee+One:wght@400;600&family=Yuji+Syuku&display=swap">
+<style>
+/* Layout: one-column game screen — status bar, battle arena, then a paper "drill sheet" for the question */
+:root{
+  --night:#120d16; --night2:#24161f; --ink:#22202a; --paper:#f4ecd6; --paper-line:#d9c9a3;
+  --gold:#e9b949; --hp:#5bd17a; --red:#d7263d; --exp:#57b6ff; --muted:#bba9b4; --text:#f5efe6;
+  --brush:"Yuji Syuku","Hiragino Mincho ProN","Yu Mincho",serif;
+  --pixel:"DotGothic16","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+  --kyokasho:"Klee One","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background-image:radial-gradient(circle at 50% -10%,rgba(215,38,61,.18),transparent 55%),repeating-radial-gradient(circle at 0 100%,transparent 0 14px,rgba(233,185,73,.05) 14px 16px,transparent 16px 22px);background-attachment:fixed;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;background:var(--night);color:var(--text);font-family:var(--pixel);font-size:16px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:12px 32px;display:flex;flex-direction:column;gap:14px}
+button{font-family:var(--pixel);font-size:16px;cursor:pointer;color:var(--text)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn{background:var(--night2);border:2px solid var(--muted);border-radius:6px;padding:10px 14px;box-shadow:0 3px 0 #0a0d1d}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0a0d1d}
+.btn.gold{background:var(--gold);color:var(--ink);border-color:#fff3c4}
+.btn.small{font-size:14px;padding:6px 10px}
+h1{font-family:var(--brush);font-weight:400;font-size:clamp(34px,9vw,56px);margin:0;letter-spacing:.08em;color:var(--text);text-shadow:3px 3px 0 var(--red),6px 6px 0 #000;text-wrap:balance}
+.sub{color:var(--muted);font-size:14px;margin:0}
+
+/* hero card */
+.herocard{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;background:var(--night2);border:2px solid #5a3044;border-radius:8px;padding:12px}
+.herocard img{width:96px;height:115px;object-fit:contain}
+img.px{image-rendering:pixelated}
+.stat{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lv{font-size:22px;color:var(--gold)}
+.title{font-size:15px}
+.bar{height:12px;background:#0b0f22;border:2px solid #000;border-radius:3px;overflow:hidden}
+.bar>i{display:block;height:100%;transition:width .4s}
+.bar.exp>i{background:var(--exp)}
+.bar.hp>i{background:var(--hp)}
+.small-num{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.panel{background:var(--night2);border:2px solid #5a3044;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.panel h2{margin:0;font-size:16px;color:var(--gold);letter-spacing:.08em}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{background:#0f1430;border:2px solid #5a3044;border-radius:6px;padding:8px 12px}
+.seg button[aria-pressed="true"]{background:var(--gold);color:var(--ink);border-color:#fff3c4}
+
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.stage{display:flex;gap:10px;align-items:center;text-align:left;background:#0f1430;border:2px solid #5a3044;border-radius:8px;padding:10px;min-width:0}
+.stage img{width:56px;height:56px;object-fit:contain;flex:none}
+.stage .nm{font-size:15px;line-height:1.3}
+.stage .meta{font-size:12px;color:var(--muted)}
+.stage .clear{color:var(--gold)}
+.stage.weak{border-color:var(--red)}
+.chapter{display:flex;flex-direction:column;gap:8px}
+.chname{display:flex;justify-content:space-between;gap:8px;font-size:15px;color:var(--text);border-bottom:1px dashed #5a3044;padding-bottom:4px}
+.chprog{color:var(--gold);font-variant-numeric:tabular-nums}
+.stage.locked{opacity:.55;cursor:default}
+.stage.locked img{filter:brightness(0) opacity(.6)}
+.idle-rival{animation:idleHero 1.1s steps(2) infinite}
+.mname.rivalname{background:rgba(60,0,90,.85);border:1px solid #c88aff}
+.rival-in{animation:rivalIn .9s cubic-bezier(.2,.8,.3,1)}
+@keyframes rivalIn{0%{transform:translate(160px,-80px) scale(.6);opacity:0;filter:brightness(4)}50%{opacity:1;filter:brightness(4)}70%{transform:none;filter:none}100%{transform:none}}
+.rival-out{animation:rivalOut .9s ease-in forwards}
+@keyframes rivalOut{0%{transform:none}25%{transform:translateY(8px) scale(1,.92)}100%{transform:translate(120px,-260px) scale(.6);opacity:0}}
+.maskfly{position:absolute;width:70px;z-index:4;pointer-events:none;animation:maskfly 1.3s ease-out forwards}
+@keyframes maskfly{0%{transform:none}30%{transform:translate(40px,-90px) rotate(200deg)}100%{transform:translate(160px,140px) rotate(540deg);opacity:0}}
+#talk{position:fixed;inset:0;z-index:15;display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(transparent 55%,rgba(0,0,0,.45));cursor:pointer}
+.talkbox{position:relative;width:min(100%,720px);display:flex;gap:12px;align-items:flex-start;background:#0b0f26;border:3px solid #fff;border-radius:10px;padding:12px;box-shadow:0 0 0 3px #000,0 6px 0 #000}
+.talkbox.rival{border-color:#c88aff}
+.talkbox .face{width:84px;height:84px;object-fit:cover;object-position:50% 20%;border:2px solid #5a3044;border-radius:6px;background:#1f2850;flex:none}
+.tbody{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px}
+.tname{font-size:14px;color:var(--gold)}
+.talkbox.rival .tname{color:#d9b0ff}
+.ttext{font-size:clamp(17px,4.2vw,22px);line-height:1.6;min-height:3.2em}
+.tnext{position:absolute;right:12px;bottom:6px;color:var(--gold);animation:pulse 1s infinite}
+.rivaltag{display:inline-block;font-size:11px;color:#d9b0ff;border:1px solid #8a5ac0;border-radius:999px;padding:0 6px;margin-left:4px}
+.finalstage{border-color:#8a5ac0;background:linear-gradient(90deg,#1a1030,#0f1430)}
+.badge{display:inline-block;margin-left:8px;font-size:11px;background:linear-gradient(90deg,#ffe27a,#ff9ad5,#9ad5ff);color:#22202a;border-radius:999px;padding:1px 8px;vertical-align:middle}
+.endroll{position:fixed;inset:0;z-index:30;background:#000;display:flex;align-items:center;justify-content:center;animation:fadein 1.5s}
+@keyframes fadein{from{opacity:0}}
+.endin{width:100%;height:100%;background-size:cover;background-position:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px 16px;text-align:center;box-shadow:inset 0 0 0 2000px rgba(0,0,20,.35);overflow:auto}
+.endin h2{font-size:clamp(36px,10vw,64px);color:#fff3b0;text-shadow:3px 3px 0 #000,0 0 20px #ffb000;margin:0;letter-spacing:.12em}
+.endin p{margin:0;line-height:1.7;text-shadow:2px 2px 0 #000;font-size:16px}
+.endin b{color:var(--gold)}
+.endpair{display:flex;gap:16px;align-items:flex-end}
+.endpair img{height:min(28vh,200px);width:auto}
+.endpair img.flip{transform:scaleX(-1)}
+.endstat{font-size:14px!important;color:#dfe4ff}
+.endmsg{font-size:18px!important}
+.sppanel{border-color:#8a2a3a;background:linear-gradient(135deg,#2a0a20,#1f2850)}
+.spstage{border-color:#c0405a;background:#140818}
+.spstage img{width:72px;height:72px}
+.arena.spfight{height:420px;box-shadow:inset 0 0 0 2px #c0405a,inset 0 -80px 100px rgba(120,0,40,.45)}
+.arena.spfight .mon.boss{width:min(74%,520px);right:-3%}
+.arena.spfight .mon .mname{position:absolute;z-index:2;right:6px;bottom:62px}
+.arena.spfight .mon.boss img{height:370px;filter:drop-shadow(0 0 18px rgba(255,40,80,.6)) drop-shadow(0 12px 0 rgba(0,0,0,.5))}
+@media (max-width:420px){.arena.spfight{height:340px}.arena.spfight .mon.boss img{height:280px}.arena.spfight .mon.boss{width:76%}}
+.sp-rise{animation:spRise 1.8s cubic-bezier(.2,.7,.2,1)}
+@keyframes spRise{0%{transform:translateY(260px) scale(.8);filter:brightness(0)}55%{transform:translateY(-10px) scale(1.05);filter:brightness(0) drop-shadow(0 0 20px #f0f)}70%{filter:brightness(3)}85%{transform:none;filter:none}100%{transform:none}}
+.warn{position:absolute;inset:0;background:rgba(40,0,0,.55);display:flex;align-items:center;z-index:5;pointer-events:none;animation:warnbg 2s forwards}
+@keyframes warnbg{0%,80%{opacity:1}100%{opacity:0}}
+.warnband{width:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#c00010 0 18px,#000 18px 36px);padding:6px 0;animation:pulse .35s steps(2) infinite}
+.warnband span{display:block;white-space:nowrap;font-size:clamp(22px,6vw,40px);color:#fff;text-shadow:3px 3px 0 #000;letter-spacing:.2em;animation:warnscroll 2s linear}
+@keyframes warnscroll{from{transform:translateX(60%)}to{transform:translateX(-60%)}}
+.sealk{position:absolute;transform:translate(-50%,-50%);z-index:4;pointer-events:none;font-family:var(--kyokasho);font-weight:600;font-size:clamp(56px,14vw,96px);line-height:1;white-space:nowrap}
+.sealk span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff3b0;text-shadow:0 0 12px #ffb000,0 0 30px #ff5000,3px 3px 0 #000;animation:sealpop 1.05s forwards}
+.sealk .l{clip-path:polygon(0 0,58% 0,42% 100%,0 100%);--sx:-46px;--sr:-14deg}
+.sealk .r{clip-path:polygon(58% 0,100% 0,100% 100%,42% 100%);--sx:46px;--sr:14deg}
+@keyframes sealpop{0%{transform:translate(-50%,-50%) scale(2.2);opacity:0}20%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--sx)),calc(-50% + 50px)) rotate(var(--sr)) scale(.9);opacity:0}}
+.spark{position:absolute;width:8px;height:8px;background:#ffe27a;box-shadow:0 0 8px #ffb000;z-index:4;pointer-events:none;animation:spark .85s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+.bigflash.sp{background:radial-gradient(circle at 70% 50%,#fff,#ffcc66 30%,transparent 65%)}
+.healfx{position:absolute;inset:0;background:radial-gradient(circle,rgba(160,0,255,.55),transparent 60%);animation:redflash .9s forwards;pointer-events:none}
+.sealbar{display:flex;flex-direction:column;gap:6px;align-items:center;font-size:14px}
+.sealbar b{color:#ff8a8a;font-size:18px}
+.seals{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;max-width:100%}
+.seals i{width:10px;height:10px;background:#c0405a;border:1px solid #000;transform:rotate(45deg)}
+.seals i.off{background:#3a3a50;opacity:.5}
+.bar.mp>i{background:#4a8cff}
+.hero .bar.mp{width:120px;height:8px}
+@media (max-width:420px){.hero .bar.mp{width:100px}}
+.skillbtn{background:#1a2a60;border-color:#6a8cff}
+.skillbtn:not(:disabled){box-shadow:0 0 0 2px rgba(106,140,255,.35),0 3px 0 #0a0d1d;animation:pulse 1.6s ease-in-out infinite}
+.skillbtn:disabled{opacity:.45;animation:none}
+.mpcost{font-size:11px;background:#4a8cff;color:#fff;border-radius:4px;padding:0 4px;margin-right:6px}
+.jobtag{display:inline-block;font-size:12px;background:#1a2a60;border:1px solid #6a8cff;border-radius:4px;padding:0 6px;margin-right:6px}
+.jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.jobcard{display:flex;gap:10px;align-items:center;text-align:left;background:#0f1430;border:2px solid #5a3044;border-radius:8px;padding:8px;min-width:0}
+.jobcard img{width:60px;height:70px;object-fit:contain;flex:none}
+.jobcard.cur{border-color:var(--gold);background:#2a2410}
+.jobcard.locked{opacity:.5}
+.jobcard.locked img{filter:brightness(0) opacity(.6)}
+.jobcard .meta.sk{color:#b8c8ff}
+.nowjob{font-size:11px;color:var(--gold);margin-left:6px}
+.jobglow{filter:drop-shadow(0 0 16px #ffe27a);animation:bossIn 1s}
+.h-cast{animation:hCast .6s ease-out}
+@keyframes hCast{0%{transform:none}40%{transform:translateY(-14px) scale(1.06)}100%{transform:none}}
+.fx-glow{position:absolute;left:2%;bottom:0;width:34%;height:80%;pointer-events:none;z-index:3;background:radial-gradient(closest-side,var(--c),transparent);opacity:0;animation:fxglow 1.2s ease-out}
+@keyframes fxglow{20%{opacity:.85}100%{opacity:0;transform:scale(1.4)}}
+.fx-heal{position:absolute;left:2%;bottom:0;width:34%;height:90%;pointer-events:none;z-index:3;background:repeating-linear-gradient(90deg,transparent 0 14px,rgba(140,255,170,.5) 14px 18px);animation:fxheal 1.2s ease-out forwards;mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+@keyframes fxheal{from{transform:translateY(60px);opacity:0}30%{opacity:1}to{transform:translateY(-80px);opacity:0}}
+.fx-clone{position:absolute;left:4%;bottom:10px;width:130px;height:150px;pointer-events:none;z-index:3;border-radius:50%;box-shadow:-30px 0 30px rgba(180,190,255,.6),30px 0 30px rgba(180,190,255,.6);animation:fxglow 1.1s ease-out}
+.fx-fire{position:absolute;inset:0;pointer-events:none;z-index:3}
+.fx-fire i{position:absolute;right:18%;top:20%;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,#fff6a0,#ff9020 40%,#e02000 70%,transparent 72%);animation:fireball .65s ease-in forwards}
+.fx-fire i:nth-child(2){animation-delay:.08s;width:80px;height:80px;top:35%}
+.fx-fire i:nth-child(3){animation-delay:.16s;width:90px;height:90px;top:10%}
+.fx-fire i:nth-child(4){animation-delay:.6s;right:10%;top:5%;width:260px;height:260px;animation:boom .6s .6s ease-out forwards;opacity:0}
+.fx-fire i:nth-child(5){animation-delay:.7s;right:14%;top:15%;width:200px;height:200px;animation:boom .6s .72s ease-out forwards;opacity:0}
+@keyframes fireball{from{transform:translateX(-420px) scale(.4);opacity:1}to{transform:none;opacity:1}}
+@keyframes boom{0%{transform:scale(.2);opacity:1}100%{transform:scale(1.3);opacity:0}}
+.bushuq{display:flex;flex-direction:column;align-items:center;gap:4px}
+.bushuq .bk{font-family:var(--kyokasho);font-weight:600;font-size:clamp(80px,22vw,130px);line-height:1;color:var(--ink)}
+.bushuq .bw{font-size:clamp(18px,4.5vw,24px)}
+.bushuq .bw b{color:#b3322f}
+.tag.bushu{background:#2a6a4a}
+.choices.bushuc .choice{font-family:var(--pixel);font-size:clamp(18px,4.6vw,24px)}
+.choices.six{grid-template-columns:1fr 1fr 1fr}
+.choices.six .choice{font-size:clamp(17px,4vw,24px);padding:10px 4px}
+@media (max-width:420px){.choices.six{grid-template-columns:1fr 1fr}}
+.sptimer{position:relative;height:22px;background:#2a2030;border:2px solid #000;border-radius:4px;overflow:hidden}
+.sptimer i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#3fd17a,#ffd84d);transition:width .1s linear}
+.sptimer.hurry i{background:#e5484d;animation:pulse .4s infinite}
+.sptimer span{position:relative;display:block;text-align:center;font-family:var(--pixel);font-size:13px;color:#fff;text-shadow:1px 1px 0 #000;line-height:18px}
+.lvnote{position:absolute;left:0;right:0;top:68%;text-align:center;color:#fff;font-size:16px;text-shadow:2px 2px 0 #000;line-height:1.6}
+.splv{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.splv i{font-style:normal;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;border:1px solid #6a2a3a;border-radius:3px;color:var(--muted)}
+.splv i.won{background:#c0405a;color:#fff;border-color:#ff8a8a}
+.splv i.now{border-color:var(--gold);color:var(--gold);animation:pulse 1.2s infinite}
+.spamb{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.spamb span{position:absolute;bottom:-40px;font-family:var(--kyokasho);font-weight:600;color:var(--aura);opacity:.75;text-shadow:0 0 8px var(--aura);animation:floatk 6s linear infinite}
+@keyframes floatk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-480px) rotate(40deg);opacity:0}}
+.arena.spfight .mon.boss img{transition:filter .3s}
+.arena.fx2 .mon.boss img{filter:drop-shadow(0 0 22px var(--aura)) drop-shadow(0 12px 0 rgba(0,0,0,.5))}
+.arena.fx3 .mon.boss img,.arena.fx4 .mon.boss img{filter:drop-shadow(0 0 28px var(--aura)) drop-shadow(0 0 60px var(--aura))}
+.arena.fx3{box-shadow:inset 0 0 60px rgba(64,200,255,.45),inset 0 0 0 2px #40c8ff}
+.arena.fx4{box-shadow:inset 0 0 70px rgba(192,96,255,.55),inset 0 0 0 2px #c060ff}
+.arena.fx4 .mon.boss,.arena.fx5 .mon.boss,.arena.fx6 .mon.boss{width:min(80%,580px)!important}
+.arena.fx4 .mon.boss img,.arena.fx5 .mon.boss img,.arena.fx6 .mon.boss img{height:390px}
+.arena.fx5{box-shadow:inset 0 0 80px rgba(255,216,77,.55),inset 0 0 0 3px #ffd84d}
+.arena.fx5 .mon.boss img{filter:drop-shadow(0 0 30px #ffd84d) drop-shadow(0 0 80px #ff9000)}
+.arena.fx5::before,.arena.fx6::before{content:"";position:absolute;right:8%;top:6%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,transparent 40%,rgba(255,220,100,.55) 46%,transparent 52%,rgba(255,220,100,.3) 58%,transparent 64%);animation:spin 8s linear infinite;pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.arena.rainbow{animation:rbw 3s linear infinite}
+@keyframes rbw{0%{box-shadow:inset 0 0 90px #ff4060,inset 0 0 0 3px #ff4060}33%{box-shadow:inset 0 0 90px #40ff90,inset 0 0 0 3px #40ff90}66%{box-shadow:inset 0 0 90px #4080ff,inset 0 0 0 3px #4080ff}100%{box-shadow:inset 0 0 90px #ff4060,inset 0 0 0 3px #ff4060}}
+.arena.rainbow .mon.boss img{animation:rbwimg 3s linear infinite}
+@keyframes rbwimg{0%{filter:drop-shadow(0 0 30px #ff4060) hue-rotate(0)}50%{filter:drop-shadow(0 0 40px #40a0ff) hue-rotate(30deg)}100%{filter:drop-shadow(0 0 30px #ff4060) hue-rotate(0)}}
+.arena.rainbow::before{background:radial-gradient(circle,transparent 40%,rgba(255,255,255,.6) 46%,transparent 52%,rgba(180,140,255,.45) 58%,transparent 64%)!important;width:380px!important;height:380px!important}
+@media (max-width:420px){.arena.fx4 .mon.boss img,.arena.fx5 .mon.boss img,.arena.fx6 .mon.boss img{height:300px}.arena.fx5::before,.arena.fx6::before{width:200px;height:200px}}
+.bolt{position:absolute;top:0;width:18px;height:70%;z-index:4;pointer-events:none;background:linear-gradient(#fff,#d8a0ff);clip-path:polygon(40% 0,100% 0,60% 40%,90% 40%,20% 100%,40% 55%,0 55%);filter:drop-shadow(0 0 12px #c060ff);animation:redflash .45s forwards}
+.allies{position:absolute;left:1%;bottom:64px;display:flex;align-items:flex-end;gap:0;z-index:0;pointer-events:none}
+.allies .ally{height:112px;width:auto;margin-right:-26px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.4)) brightness(.92)}
+.arena.bossfight .mname.kishoname{position:absolute;right:6px;bottom:62px;z-index:2}
+.arena .hero{left:30%!important}
+@media (max-width:420px){.allies{bottom:56px}.allies .ally{height:76px;margin-right:-20px}.arena .hero{left:24%!important}}
+.ally-go{animation:allyGo .6s ease-out}
+@keyframes allyGo{40%{transform:translateX(70px) translateY(-8px)}100%{transform:none}}
+.mname.kishoname{background:linear-gradient(90deg,#5a0010,#a01020);border:1px solid #ffcf60;color:#fff3c4;font-size:16px}
+.kishocall{position:absolute;left:0;right:0;top:22%;text-align:center;z-index:6;pointer-events:none;animation:bosscall 2.2s forwards;color:#fff;text-shadow:4px 4px 0 #000,0 0 24px #f00}
+.kishocall b{font-family:var(--brush);font-weight:400;font-size:clamp(90px,24vw,150px);color:#ffcf60;display:block;line-height:1}
+.kishocall span{font-family:var(--brush);font-size:clamp(28px,7vw,44px)}
+.maoucall b{color:#ff3050}
+.maou-dark{filter:saturate(1.4) brightness(.8)}
+.maou-swell{animation:maouSwell 2.2s ease-in}
+@keyframes maouSwell{0%{transform:none}30%{transform:scale(1.05) translateX(-4px)}60%{transform:scale(1.25);filter:brightness(0) drop-shadow(0 0 30px #f00)}100%{transform:scale(1.6);filter:brightness(0) drop-shadow(0 0 60px #f00);opacity:.2}}
+.corps .corpsrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.member{display:flex;flex-direction:column;align-items:center;gap:2px;background:#1a0f16;border:1px solid #5a3044;border-radius:8px;padding:6px;text-align:center;min-width:0}
+.member img{height:64px;width:auto;filter:brightness(0) opacity(.5)}
+.member.on img{filter:none}
+.member span{font-size:13px}
+.member small{font-size:10px;color:var(--muted);line-height:1.3}
+.member.on{border-color:var(--gold)}
+.kisholist{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+@media (max-width:520px){.kisholist{grid-template-columns:repeat(3,1fr)}}
+.kisho{position:relative;display:flex;flex-direction:column;align-items:center;background:#1a0f16;border:1px solid #5a3044;border-radius:8px;padding:4px;min-width:0}
+.kisho b{position:absolute;left:4px;top:2px;font-family:var(--brush);font-weight:400;font-size:20px;color:#ff8a8a}
+.kisho img{height:58px;width:auto;filter:brightness(0) drop-shadow(0 0 4px #c03050)}
+.kisho.won img{filter:grayscale(.7) brightness(.7)}
+.kisho.won::after{content:"討";position:absolute;right:4px;bottom:16px;font-family:var(--brush);color:var(--gold);font-size:24px;transform:rotate(-12deg)}
+.kisho span{font-size:11px}
+.train .revst{border-color:#8a5ac0;background:linear-gradient(90deg,#24103a,#0f1430)}
+.duecnt{color:#ff8a8a;margin-left:6px}
+.trainrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tbtn{display:flex;flex-direction:column;align-items:center;gap:2px;background:#1a0f16;border:2px solid #5a3044;border-radius:8px;padding:10px 4px}
+.tbtn b{font-family:var(--brush);font-weight:400;font-size:20px;color:var(--gold)}
+.tbtn span{font-size:12px;color:var(--muted)}
+.mbar{height:6px;background:#0b0f22;border-radius:3px;overflow:hidden}
+.mbar i{display:block;height:100%;background:linear-gradient(90deg,#57b6ff,#e9b949)}
+.chname.gold{color:var(--gold)}
+.stars{letter-spacing:1px}
+.starlist{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted)}
+.starlist .on{color:var(--gold)}
+#monArt.shiny img{filter:sepia(1) saturate(3.5) hue-rotate(-8deg) brightness(1.2) drop-shadow(0 0 10px #ffd84d) drop-shadow(0 0 22px #ffb000)!important}
+#monArt.shiny::after{content:"✦";position:absolute;right:10%;top:5%;color:#fff3b0;font-size:26px;text-shadow:0 0 10px #ffb000;animation:pulse .8s infinite}
+#monArt.revival img{filter:hue-rotate(220deg) saturate(1.3) brightness(.95) drop-shadow(0 0 12px #b060ff)}
+.ovbox.wide{max-width:680px}
+.dex{max-height:58vh;overflow:auto;width:100%;display:flex;flex-direction:column;gap:8px;text-align:left}
+.dexh{font-size:12px;color:var(--gold);border-bottom:1px dashed #5a3044;margin-bottom:4px}
+.dexrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+.dexc{display:flex;flex-direction:column;align-items:center;background:#1a0f16;border:1px solid #5a3044;border-radius:6px;padding:4px;min-width:0}
+.ovbox .dexc img{width:60px;height:60px;object-fit:contain}
+.dexc span{font-size:10px;text-align:center;line-height:1.2}
+.dexc small{font-size:10px;color:var(--muted)}
+.dexc.unk img{filter:brightness(0) opacity(.5)}
+.dexc.gold{border-color:#ffd84d;box-shadow:0 0 8px #ffb000}
+.dexc.gold img{filter:sepia(1) saturate(3.5) hue-rotate(-8deg) brightness(1.2)}
+.smith{display:flex;flex-direction:column;gap:6px;width:100%;max-height:58vh;overflow:auto}
+.sw{display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;background:#1a0f16;border:1px solid #5a3044;border-radius:8px;padding:6px 8px;text-align:left}
+.sw.eq{border-color:var(--gold);background:#2a2410}
+.katana{width:70px;height:18px}
+.swb{display:flex;flex-direction:column;min-width:0}
+.swb small{font-size:11px;color:var(--muted)}
+.swbtn{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.hyakubar{position:absolute;left:8px;right:8px;top:8px;height:24px;background:rgba(0,0,0,.6);border:2px solid #000;border-radius:6px;overflow:hidden;z-index:5}
+.hyakubar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#d7263d,#e9b949);transition:width .1s linear}
+.hyakubar i.hurry{animation:pulse .4s infinite}
+.hyakubar span,.hyakubar b{position:relative;font-size:14px;line-height:20px;padding:0 8px;text-shadow:1px 1px 0 #000}
+.hyakubar b{float:right;color:#fff3b0;font-weight:normal}
+.daily .dq{display:flex;flex-direction:column;gap:8px}
+.quest{background:#0f1430;border:2px solid #5a3044;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.quest.done{border-color:var(--gold);box-shadow:0 0 0 2px rgba(242,193,78,.25)}
+.quest.claimed{opacity:.6}
+.quest.bonus{border-style:dashed}
+.qt{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px}
+.qr{color:var(--gold);font-size:12px}
+.qrow{display:flex;align-items:center;gap:8px}
+.qrow .bar{flex:1;min-width:60px}
+.qrow .bar>i{background:var(--gold)}
+.qok{font-size:12px;color:var(--hp)}
+.dinfo{display:flex;flex-direction:column;gap:4px}
+.itemsrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+.itm{display:inline-flex;align-items:center;gap:4px;background:#0f1430;border:1px solid #5a3044;border-radius:6px;padding:2px 8px}
+.ico{display:inline-block;width:18px;height:18px;flex:none}
+.ico svg{width:100%;height:100%;display:block;image-rendering:pixelated}
+.cal{display:flex;flex-direction:column;gap:6px}
+.calh{font-size:13px;color:var(--muted)}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;max-width:360px}
+.calg b{font-size:11px;color:var(--muted);text-align:center;font-weight:normal}
+.calg i{font-style:normal;font-size:11px;text-align:center;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#0f1430;color:var(--muted);font-variant-numeric:tabular-nums}
+.calg i:empty:not(.st){background:transparent}
+.calg i.st{background:radial-gradient(circle,#ffe27a 0 45%,#c99a1e 46% 58%,#0f1430 60%)}
+.calg i.td{outline:2px solid var(--exp)}
+.lb{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%}
+.lbday{display:flex;flex-direction:column;align-items:center;gap:2px;background:#0f1430;border:2px solid #5a3044;border-radius:6px;padding:4px 2px;font-size:10px;min-width:0}
+.lbday span{color:var(--muted)}
+.lbday b{color:var(--exp);font-size:12px}
+.lbday small{font-size:9px;line-height:1.2;text-align:center;word-break:keep-all;overflow-wrap:anywhere}
+.lbday .ico{width:20px;height:20px}
+.lbday.got{opacity:.45}
+.lbday.got::after{content:"ずみ";font-size:9px;color:var(--hp)}
+.lbday.now{border-color:var(--gold);background:#3a2a10;animation:pulse 1.2s ease-in-out infinite}
+.chest{width:26px;height:20px;background:linear-gradient(#e0a020 0 40%,#000 40% 46%,#b07010 46%);border:2px solid #000;border-radius:4px 4px 2px 2px;position:relative}
+.chest::after{content:"";position:absolute;left:50%;top:30%;width:6px;height:7px;margin-left:-3px;background:#fff3c4;border:1px solid #000}
+.chest.open{width:80px;height:60px;box-shadow:0 0 30px 10px rgba(255,220,100,.6);animation:bossIn .8s}
+.itembar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.itembtn{display:inline-flex;align-items:center;gap:6px}
+.itembtn:disabled{opacity:.4}
+.buff{font-size:13px;color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:2px 10px}
+#toasts{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translateX(-50%);z-index:20;display:flex;flex-direction:column;gap:6px;align-items:center;width:max-content;max-width:calc(100% - 32px);pointer-events:none}
+.toast{background:#3a2a10;border:2px solid var(--gold);color:var(--text);padding:10px 16px;border-radius:8px;font-size:15px;text-align:center;box-shadow:0 4px 0 #000;max-width:calc(100% - 32px);transition:opacity .5s,transform .5s}
+.toast small{color:var(--muted)}
+.toast.out{opacity:0;transform:translateY(-20px)}
+.skills{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.skill{font-size:11px;background:#3a2a10;color:var(--gold);border:1px solid #8a6a20;border-radius:999px;padding:1px 8px}
+.skills .next{font-size:11px;color:var(--muted)}
+/* レベルが高い剣士のオーラ */
+.hero.aura1 #heroArt::before,.hero.aura2 #heroArt::before{content:"";position:absolute;left:-10%;right:-10%;bottom:-4%;height:80%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,215,80,.55),transparent);animation:aura 1.4s ease-in-out infinite;z-index:-1}
+.hero.aura2 #heroArt::before{background:radial-gradient(closest-side,rgba(255,255,255,.6),rgba(140,200,255,.35) 50%,rgba(255,120,220,.2) 75%,transparent)}
+@keyframes aura{50%{transform:scale(1.12);opacity:.7}}
+.hero #heroArt{z-index:0}
+.skillcall{position:absolute;left:0;right:0;top:12%;text-align:center;font-family:var(--brush);font-size:clamp(26px,7vw,42px);color:#fff3b0;text-shadow:2px 2px 0 #000,0 0 14px #ffb000;pointer-events:none;animation:bosscall 1.2s forwards;z-index:3}
+.bigflash{position:absolute;inset:0;background:#fff;pointer-events:none;animation:redflash .5s forwards;z-index:2}
+.lvnew{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:#0f1430;border:1px solid #5a3044;border-radius:8px;padding:10px;font-size:14px;line-height:1.5}
+.lvnew b{color:var(--gold)}
+.lvpair{display:flex;align-items:flex-end;justify-content:center;gap:6px}
+.lvpair img{width:90px;height:110px;object-fit:contain}
+.lvpair .arrow{font-size:22px;color:var(--gold);padding-bottom:40px}
+
+/* battle */
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.top .area{font-size:14px;color:var(--muted);min-width:0}
+.dots{display:flex;gap:4px}
+.dots i{width:12px;height:12px;border:2px solid var(--muted);border-radius:2px}
+.dots i.done{background:var(--gold);border-color:var(--gold)}
+.dots i.now{border-color:var(--red);background:#5a1d22}
+.arena{position:relative;background-size:cover!important;background-position:center bottom!important;height:290px;border:3px solid #000;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 2px #5a3044}
+.arena .ground{position:absolute;left:0;right:0;bottom:0;height:38%;background:rgba(0,0,0,.25)}
+.mon{position:absolute;right:4%;bottom:14px;width:190px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.mon img{width:150px;height:150px;object-fit:contain;object-position:bottom;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.mon .mname{font-size:13px;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:4px;white-space:nowrap}
+.mon .bar{width:130px}
+.mon.boss img{width:190px;height:190px}
+/* 大型ボス：アリーナを高くして画面の右半分以上を占める */
+.arena.bossfight{height:400px;box-shadow:inset 0 0 0 2px #7a1f2a,inset 0 -60px 80px rgba(80,0,0,.35)}
+.arena.bossfight .mon.boss{right:-1%;bottom:4px;width:min(66%,460px)}
+.arena.bossfight .mon.boss img{width:100%;height:330px;filter:drop-shadow(0 0 14px rgba(255,50,40,.5)) drop-shadow(0 10px 0 rgba(0,0,0,.45))}
+.arena.bossfight .mon.boss .bar{width:72%;height:16px}
+.arena.bossfight .mon.boss .mname{font-size:16px;background:rgba(110,0,10,.8);border:1px solid #ff8a8a}
+#monArt,#heroArt{position:relative;transform-origin:50% 100%}
+/* 待機モーション（ドット絵らしく、少しカクカク動かす） */
+.hero img{transform-origin:50% 100%;animation:idleHero 1.1s steps(2) infinite}
+@keyframes idleHero{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-2px) scale(1,1.025)}}
+.mon img{transform-origin:50% 100%}
+.idle-slime,.idle-king{animation:idleSlime 1.2s ease-in-out infinite}
+@keyframes idleSlime{0%,100%{transform:scale(1.06,.94)}50%{transform:scale(.96,1.05)}}
+.idle-bat{animation:idleFly .9s ease-in-out infinite}
+.idle-ghost{animation:idleFly 1.8s ease-in-out infinite}
+@keyframes idleFly{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.idle-mush{animation:idleSway 1.4s steps(4) infinite}
+@keyframes idleSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+.idle-golem{animation:idleHeavy 1.6s steps(2) infinite}
+@keyframes idleHeavy{0%,100%{transform:translateY(0)}50%{transform:translateY(3px) scale(1.01,.99)}}
+.idle-dragon{animation:idleBreath 2s ease-in-out infinite}
+@keyframes idleBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.035,1.02) translateY(-3px)}}
+/* 攻撃・ダメージ */
+.h-atk{animation:hAtk .45s ease-out}
+@keyframes hAtk{0%{transform:none}25%{transform:translateX(-10px)}55%{transform:translateX(95px) translateY(-6px)}75%{transform:translateX(80px)}100%{transform:none}}
+.h-hurt{animation:hHurt .5s linear}
+@keyframes hHurt{0%{transform:none;filter:none}15%{transform:translateX(-18px) rotate(-4deg);filter:brightness(2.2) sepia(1) saturate(5) hue-rotate(-30deg)}30%{filter:none}45%{filter:brightness(2.2) sepia(1) saturate(5) hue-rotate(-30deg)}60%{transform:translateX(-10px);filter:none}100%{transform:none}}
+.m-hurt{animation:mHurt .45s linear}
+@keyframes mHurt{0%{transform:none;filter:none}10%{transform:translateX(16px);filter:brightness(5) saturate(0)}25%{transform:translateX(-8px);filter:none}40%{transform:translateX(8px);filter:brightness(5) saturate(0)}55%{transform:translateX(-4px);filter:none}100%{transform:none}}
+.m-atk{animation:mAtk .6s ease-in}
+@keyframes mAtk{0%{transform:none}30%{transform:translateX(14px) scale(1.04)}55%{transform:translateX(-120px) scale(1.12)}70%{transform:translateX(-100px) scale(1.08)}100%{transform:none}}
+.m-atk-boss{animation:mAtkBoss .75s ease-in}
+@keyframes mAtkBoss{0%{transform:none}35%{transform:translateX(24px) translateY(-14px) scale(1.06)}55%{transform:translateX(-140px) translateY(6px) scale(1.18)}72%{transform:translateX(-110px) scale(1.12)}100%{transform:none}}
+.shake-big{animation:shakeBig .55s}
+@keyframes shakeBig{0%,100%{transform:none}10%{transform:translate(-14px,6px)}25%{transform:translate(12px,-8px)}40%{transform:translate(-10px,4px)}55%{transform:translate(8px,-4px)}70%{transform:translate(-5px,2px)}85%{transform:translate(3px,0)}}
+.redflash{position:absolute;inset:0;background:#ff1a1a;pointer-events:none;animation:redflash .45s forwards;mix-blend-mode:screen}
+@keyframes redflash{0%{opacity:.55}100%{opacity:0}}
+.boss-in{animation:bossIn 1.3s cubic-bezier(.2,.8,.3,1)}
+@keyframes bossIn{0%{transform:translateY(40px) scale(.5);filter:brightness(0)}45%{transform:translateY(0) scale(1.08);filter:brightness(0)}60%{filter:brightness(3)}75%{transform:scale(1);filter:none}100%{transform:none}}
+.die-boss{animation:dieBoss 1.5s forwards}
+@keyframes dieBoss{0%,20%,40%,60%{filter:brightness(4) saturate(0);opacity:1}10%,30%,50%{filter:none;opacity:1}70%{transform:none;opacity:1}100%{transform:translateY(30px) scale(1.1,.2);opacity:0;filter:brightness(4) saturate(0)}}
+.bosscall{position:absolute;left:0;right:0;top:40%;text-align:center;font-size:clamp(26px,6vw,40px);color:#ff4d4d;text-shadow:3px 3px 0 #000,0 0 18px #f00;letter-spacing:.15em;pointer-events:none;animation:bosscall 1.6s forwards}
+@keyframes bosscall{0%{opacity:0;transform:scale(2)}20%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
+.hero{position:absolute;left:5%;bottom:10px;width:130px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.hero img{width:120px;height:140px;object-fit:contain;object-position:bottom}
+.hero .bar{width:120px}
+.mon .hplabel,.hero .hplabel{font-size:12px;font-variant-numeric:tabular-nums;background:rgba(0,0,0,.6);padding:1px 6px;border-radius:4px}
+.float{position:absolute;font-size:30px;font-weight:bold;color:#fff;text-shadow:2px 2px 0 #000,-2px -2px 0 #000;pointer-events:none;animation:up .9s forwards}
+.float.crit{color:var(--gold);font-size:36px}
+.float.ouch{color:var(--red)}
+@keyframes up{from{transform:translateY(0);opacity:1}to{transform:translateY(-50px);opacity:0}}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.lunge{animation:lunge .35s}
+@keyframes lunge{50%{transform:translateX(60px) translateY(-14px)}}
+.flash{animation:flash .4s}
+@keyframes flash{0%,100%{opacity:1}25%,75%{opacity:.2}}
+.die{animation:die .7s forwards}
+@keyframes die{to{transform:scale(.2) rotate(30deg);opacity:0}}
+.slash{position:absolute;right:16%;top:50px;width:110px;height:110px;pointer-events:none;animation:slash .35s forwards}
+@keyframes slash{from{opacity:1;clip-path:inset(0 100% 0 0)}to{opacity:0;clip-path:inset(0 0 0 0)}}
+.msg{min-height:1.4em;font-size:15px;text-align:center}
+
+/* drill sheet */
+.sheet{background:var(--paper);color:var(--ink);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 0 #0007;background-image:repeating-linear-gradient(transparent 0 38px,var(--paper-line) 38px 39px)}
+.qhead{display:flex;justify-content:space-between;align-items:center;font-family:var(--pixel);font-size:14px;gap:8px}
+.tag{background:var(--ink);color:var(--paper);padding:2px 10px;border-radius:999px}
+.tag.kaki{background:#b3322f}
+.streak{color:#b3322f}
+.sentence{font-family:var(--kyokasho);font-weight:600;font-size:clamp(26px,6.5vw,38px);line-height:1.7;text-align:center;word-break:keep-all;overflow-wrap:anywhere}
+.sentence .t{border-bottom:4px solid #b3322f;padding:0 2px}
+.sentence .h{background:#fff7d6;border:2px dashed #b3322f;border-radius:6px;padding:0 6px;color:#b3322f}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{font-family:var(--kyokasho);font-weight:600;font-size:clamp(20px,5vw,28px);background:#fffaf0;color:var(--ink);border:3px solid var(--ink);border-radius:8px;padding:12px 6px;box-shadow:0 4px 0 var(--ink);min-width:0;overflow-wrap:anywhere}
+.choice:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.choice.ok{background:#c9f2d3;border-color:#1f7a3a}
+.choice.ng{background:#f8c9c9;border-color:#b3322f;opacity:.7}
+.choice:disabled{cursor:default}
+.answer{font-family:var(--kyokasho);font-size:20px;text-align:center}
+.answer b{font-size:28px;color:#b3322f}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.sheet .btn{color:var(--text)}
+.judge{font-family:var(--pixel);text-align:center;font-size:16px;line-height:1.6;padding:8px;border-radius:6px;background:#fff7d6}
+.judge.ok{background:#c9f2d3;color:#1f5a2e}.judge.ng{background:#f8d4d4;color:#8a1f1f}
+.judge b{font-size:22px}
+.judge.thinking{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+.canvas-wrap{display:flex;justify-content:center;overflow-x:auto}
+canvas.pad{background:#fffdf5;border:3px solid var(--ink);border-radius:6px;touch-action:none;max-width:100%}
+.canvas-wrap,canvas.pad{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+img{-webkit-user-drag:none}
+
+/* overlay */
+.ov{position:fixed;inset:0;background:rgba(5,7,20,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.ovbox{background:var(--night2);border:3px solid var(--gold);border-radius:10px;padding:20px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;box-shadow:0 0 0 4px #000}
+.ovbox h3{margin:0;font-size:26px;color:var(--gold);text-shadow:2px 2px 0 #000}
+.ovbox p{margin:0;line-height:1.6}
+.ovbox img{width:120px;height:140px;object-fit:contain}
+.weaklist{max-height:50vh;overflow:auto;width:100%;text-align:left;font-family:var(--kyokasho);font-size:18px;display:flex;flex-direction:column;gap:6px}
+.weaklist div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed #5a3044;padding-bottom:4px}
+.weaklist span{color:var(--muted);font-family:var(--pixel);font-size:13px;flex:none}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
+@media (max-width:420px){.arena{height:250px}.mon{width:150px;right:2%}.mon img{width:125px;height:125px}.mon.boss img{width:150px;height:150px}.arena.bossfight{height:320px}.arena.bossfight .mon.boss{width:68%}.arena.bossfight .mon.boss img{height:250px;width:100%}.mon .bar{width:110px}.hero{width:110px;left:2%}.hero img{width:96px;height:112px}.hero .bar{width:100px}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+// ===== 問題データ（テキスト「東6・II」より）=====
+// {漢字|よみ} が出題する部分
+const RAW = {
+s1:`{善|よ}い行い。
+{厳|きび}しい練習。
+花を{供|そな}える。
+恩師を{敬|うやま}う。
+{仁愛|じんあい}の心。
+{米俵|こめだわら}を運ぶ。
+{異変|いへん}に気づく。
+{背比|せくら}べをする。
+{同窓会|どうそうかい}に行く。
+{養蚕業|ようさんぎょう}を営む。
+表と{裏|うら}。
+{頭脳|ずのう}の働き。
+{臨海|りんかい}公園。
+{創立|そうりつ}記念日。
+{穀物|こくもつ}の倉庫。
+{視線|しせん}が合う。
+世界{遺産|いさん}。
+話の{結論|けつろん}。
+国の{政策|せいさく}。
+{警察署|けいさつしょ}。
+よいことと わるいこと、{善悪|ぜんあく}を考える。
+生活を{改善|かいぜん}する。
+戸じまりを{厳重|げんじゅう}にする。
+情報を{提供|ていきょう}する。
+{子供|こども}のころの写真。
+ていねいな{敬語|けいご}を使う。
+先生を{尊敬|そんけい}する。
+すもうの{土俵|どひょう}。
+{異国|いこく}の地を旅する。
+二つの案を{比較|ひかく}する。
+駅の{窓口|まどぐち}でたずねる。
+{車窓|しゃそう}からの景色。
+{蚕|かいこ}を育てる。
+紙の{裏側|うらがわ}に書く。
+{臨時|りんじ}ニュースが流れる。
+新しいものを{創造|そうぞう}する。
+{視力|しりょく}を検査する。
+クラスで{討論|とうろん}する。
+台風の{対策|たいさく}をする。
+手紙に{署名|しょめい}する。`,
+s2:`{心臓|しんぞう}の働き。
+{俳句|はいく}を作る。
+犬が{舌|した}を出す。
+資料を{探|さが}す。
+月面を{探査|たんさ}する。
+考え方が{異|こと}なる。
+計画に{沿|そ}う。
+太平洋の{沿岸|えんがん}。
+弟の{誕生日|たんじょうび}。
+荷物が{届|とど}く。
+切り{株|かぶ}の上に立つ。
+店の{看板|かんばん}。
+{回覧板|かいらんばん}を受け取る。
+夜空の{星座|せいざ}。
+約束を{忘|わす}れる。
+話を{盛|も}り上げる。
+チケットの{発券|はっけん}をする。
+{専門|せんもん}の分野。
+{玉座|ぎょくざ}にすわる。
+{読本|とくほん}を読む。
+裏山を{探検|たんけん}する。
+要望に{沿|そ}う。
+{沿道|えんどう}に並ぶ店。
+病人の{看護|かんご}。
+{正座|せいざ}して話を聞く。
+{入場券|にゅうじょうけん}を買う。
+電車の{乗車券|じょうしゃけん}。
+{専門家|せんもんか}の意見。
+{巻末|かんまつ}の付録。
+海{沿|ぞ}いの道。
+練習に{専念|せんねん}する。
+有名な{俳人|はいじん}の句。
+人気の{俳優|はいゆう}。
+真理を{探求|たんきゅう}する。
+金属{探知機|たんちき}。
+{沿線|えんせん}の町。
+{欠席届|けっせきとどけ}を出す。
+役所に{転出届|てんしゅつとどけ}を出す。
+会社の{株主|かぶぬし}。
+{株価|かぶか}が上がる。
+母を{看病|かんびょう}する。
+英会話の{講座|こうざ}。
+{座談会|ざだんかい}を開く。
+はかりの{目盛|めも}りを読む。
+カレーの{大盛|おおも}り。
+{盛大|せいだい}な拍手。
+{商品券|しょうひんけん}をもらう。
+{金券|きんけん}を使う。
+{専業|せんぎょう}農家。
+{専属|せんぞく}の運転手。
+{専任|せんにん}の先生。`,
+s3:`飛行機の{模型|もけい}。
+全国的な{規模|きぼ}。
+{単純|たんじゅん}な作業。
+父が{転勤|てんきん}する。
+銀行に{勤|つと}める。
+{潮|しお}が満ちる。
+社会の{風潮|ふうちょう}。
+建物の{鉄骨|てっこつ}。
+魚の{骨|ほね}。
+長い竹の{棒|ぼう}。
+{穴|あな}をほる。
+{地層|ちそう}を調査する。
+試合に{興奮|こうふん}する。
+勇気を{奮|ふる}う。
+駅のホームが{延|の}びる。
+予定を{延期|えんき}する。
+近所の{銭湯|せんとう}に行く。
+{鉄鋼業|てっこうぎょう}を営む。
+{批判|ひはん}を受ける。
+パソコンを{操作|そうさ}する。
+{大規模|だいきぼ}な工事。
+{純真|じゅんしん}な心。
+{通勤|つうきん}電車に乗る。
+{鉄棒|てつぼう}の練習。
+{棒|ぼう}グラフをかく。
+{青年層|せいねんそう}の要望。
+{奮起|ふんき}して勉強する。
+{延長戦|えんちょうせん}に入る。
+つり{銭|せん}を受け取る。
+{鋼鉄|こうてつ}のとびら。
+{鋼材|こうざい}を運ぶ。
+{批判的|ひはんてき}な意見。
+絵の{批評|ひひょう}。
+朝の{体操|たいそう}。
+水玉{模様|もよう}。
+急{激|げき}な変化。
+空気を{圧縮|あっしゅく}する。
+準備{体操|たいそう}。
+花の{模様|もよう}のハンカチ。
+名画を{模写|もしゃ}する。
+{模造品|もぞうひん}に注意する。
+{純金|じゅんきん}のメダル。
+{純情|じゅんじょう}な少年。
+{純毛|じゅんもう}のセーター。
+父が{出勤|しゅっきん}する。
+市役所に{勤務|きんむ}する。
+{勤勉|きんべん}な人。
+海の{潮流|ちょうりゅう}。
+{満潮|まんちょう}の時刻。
+{干潮|かんちょう}で岩が見える。
+足を{骨折|こっせつ}する。
+しっかりした{骨格|こっかく}。
+{背骨|せぼね}をのばす。
+体操の{平行棒|へいこうぼう}。
+{警棒|けいぼう}を持つ。
+山の{横穴|よこあな}。
+{穴場|あなば}の店。
+地面の{断層|だんそう}。
+ビルの{上層|じょうそう}階。
+{発奮|はっぷん}してがんばる。
+最後まで{奮戦|ふんせん}する。
+雨で{順延|じゅんえん}になる。
+電車が{延着|えんちゃく}する。
+{古銭|こせん}を集める。
+{一銭|いっせん}も持っていない。
+{製鋼|せいこう}所で働く。
+飛行機を{操縦|そうじゅう}する。
+工場が{操業|そうぎょう}する。
+音楽で{情操|じょうそう}を育てる。`,
+s4:`ほら{穴|あな}をのぞく。
+動物の{骨|ほね}。
+ご飯を{盛|も}る。
+{潮風|しおかぜ}がふく。
+{純白|じゅんぱく}のドレス。
+{金銭|きんせん}の管理。
+{株式会社|かぶしきがいしゃ}の設立。
+{批評家|ひひょうか}の意見。
+{模造紙|もぞうし}を買う。
+駅の{券売機|けんばいき}。
+{体操|たいそう}の選手。
+{高層|こうそう}ビル。
+{鉄棒|てつぼう}で遊ぶ。
+{通勤|つうきん}の電車。
+{専用|せんよう}のペン。
+バスの{座席|ざせき}。
+{看護師|かんごし}。
+本を{探|さが}す。
+期日を{延|の}ばす。
+手紙が{届|とど}く。`,
+s5:`返事に{困|こま}る。
+{困難|こんなん}を乗りこえる。
+アンケートを{回収|かいしゅう}する。
+時間内に{収|おさ}まる。
+糸を{巻|ま}く。
+研究者が{推定|すいてい}する。
+ごみを{捨|す}てる。
+{四捨五入|ししゃごにゅう}をする。
+商品の{包装|ほうそう}。
+{資源|しげん}を大切にする。
+元気の{源|みなもと}。
+{法律|ほうりつ}を定める。
+規則に{従|したが}う。
+店の{従業員|じゅうぎょういん}。
+使用{済|ず}みのあみ。
+{経済|けいざい}のニュース。
+別の{視点|してん}から述べる。
+{著作権|ちょさくけん}を守る。
+{段落|だんらく}を変えて書く。
+{一冊|いっさつ}の本。
+切手の{収集|しゅうしゅう}。
+{取捨|しゅしゃ}選たくをする。
+青い{包装紙|ほうそうし}。
+{服装|ふくそう}を整える。
+豊富な{天然資源|てんねんしげん}。
+{規律|きりつ}を守る。
+ピアノの{調律|ちょうりつ}。
+{従来|じゅうらい}どおり行う。
+用事が{済|す}む。
+有名な本の{著者|ちょしゃ}。
+{著名|ちょめい}な画家。
+{選挙権|せんきょけん}を得る。
+{権力|けんりょく}がある。
+{数冊|すうさつ}の本。
+{別冊|べっさつ}の付録。
+{困難|こんなん}な問題。
+{原因|げんいん}を調べる。
+新しい{校舎|こうしゃ}。
+医学を{修|おさ}める。
+戦国の世を{治|おさ}める。
+きれいな箱に{収|おさ}める。
+{困苦|こんく}にたえる。
+{貧困|ひんこん}をなくす。
+千人を{収容|しゅうよう}する。
+毎月の{収入|しゅうにゅう}。
+テレビ番組を{収録|しゅうろく}する。
+{仮装|かそう}行列。
+店を{改装|かいそう}する。
+登山の{装備|そうび}。
+安全{装置|そうち}。
+テレビの{電源|でんげん}を入れる。
+ことばの{語源|ごげん}を調べる。
+川の{源流|げんりゅう}。
+文明の{起源|きげん}。
+{一律|いちりつ}に配る。
+{音律|おんりつ}をととのえる。
+{従順|じゅうじゅん}な犬。
+農業に{従事|じゅうじ}する。
+代金を{決済|けっさい}する。
+お金を{返済|へんさい}する。
+こまっている人を{救済|きゅうさい}する。
+先生の{著書|ちょしょ}を読む。
+{著作物|ちょさくぶつ}を守る。
+{実権|じっけん}をにぎる。
+自分の{権利|けんり}を主張する。
+{人権|じんけん}を大切にする。
+{権限|けんげん}をあたえる。
+小さな{冊子|さっし}。
+本の{冊数|さっすう}を数える。
+{分冊|ぶんさつ}で発売する。`,
+s6:`{満腹|まんぷく}になる。
+{腹|はら}を立てる。
+山の{中腹|ちゅうふく}で休む。
+{縦横|じゅうおう}に走り回る。
+{縦|たて}書きの文章。
+会費を{納|おさ}める。
+衣類を{収納|しゅうのう}する。
+{秘伝|ひでん}の味。
+{神秘的|しんぴてき}な景色。
+{秘密|ひみつ}の話。
+生活に{密着|みっちゃく}する。
+{反対派|はんたいは}の意見。
+外国の{特派員|とくはいん}。
+有名な{温泉|おんせん}旅館。
+清らかな{泉|いずみ}。
+{訪問客|ほうもんきゃく}をもてなす。
+母校を{訪|たず}ねる。
+{家庭訪問|かていほうもん}。
+{絹糸|きぬいと}でぬう。
+{絹|きぬ}のドレス。
+石を取り{除|のぞ}く。
+対象から{除外|じょがい}する。
+{除雪車|じょせつしゃ}が雪を取り除く。
+兄が{帰宅|きたく}する。
+{自宅|じたく}の住所。
+{蒸気|じょうき}機関車に乗る。
+水が{蒸発|じょうはつ}する。
+{神聖|しんせい}な場所。
+{聖人|せいじん}の教え。
+{空腹|くうふく}をがまんする。
+{腹部|ふくぶ}がいたい。
+{山腹|さんぷく}の小屋。
+日本を{縦断|じゅうだん}する。
+{縦糸|たていと}と横糸。
+{縦長|たてなが}の紙。
+商品を{納品|のうひん}する。
+{納期|のうき}を守る。
+{納税|のうぜい}の義務。
+{秘話|ひわ}を聞く。
+{秘蔵|ひぞう}の宝物。
+社長の{秘書|ひしょ}。
+{秘境|ひきょう}をたずねる。
+人口{密度|みつど}。
+家が{密集|みっしゅう}する。
+{密接|みっせつ}な関係。
+{内密|ないみつ}の話。
+{立派|りっぱ}な家。
+{流派|りゅうは}がちがう。
+ことばから{派生|はせい}する。
+温泉の{源泉|げんせん}。
+{冷泉|れいせん}に入る。
+{鉱泉|こうせん}がわく。
+大統領が各国を{歴訪|れきほう}する。
+お客さんの{来訪|らいほう}。
+{絹地|きぬじ}の着物。
+{絹織物|きぬおりもの}の産地。
+庭の{除草|じょそう}をする。
+けいほうを{解除|かいじょ}する。
+{住宅|じゅうたく}が立ちならぶ。
+{在宅|ざいたく}で仕事をする。
+荷物を{宅配|たくはい}する。
+{宅地|たくち}を開発する。
+{水蒸気|すいじょうき}が出る。
+{蒸留水|じょうりゅうすい}を使う。
+オリンピックの{聖火|せいか}。
+{聖夜|せいや}のコンサート。
+{聖書|せいしょ}を読む。
+{聖者|せいじゃ}の伝説。`,
+s7:`船がたびのとちゅうで{寄港|きこう}する町。
+{単独|たんどく}で辺境の地を回る。
+単独で{辺境|へんきょう}の地を回る。
+{往復|おうふく}乗車券の価格を調べる。
+往復乗車券の{価格|かかく}を調べる。
+{日程|にってい}と旅費を確かめる。
+日程と{旅費|りょひ}を確かめる。
+二つの店の{営業|えいぎょう}時間。
+二つの店の営業時間を{比|くら}べる。
+{構文|こうぶん}を順序立てて書く。
+構文を{順序|じゅんじょ}立てて書く。
+新幹線で{快適|かいてき}に移動する。
+新幹線で快適に{移動|いどう}する。
+{夢|ゆめ}は太平洋を航海することだ。
+夢は太平洋を{航海|こうかい}することだ。
+山田{夫妻|ふさい}の似顔絵をかく。
+山田夫妻の{似顔絵|にがおえ}をかく。
+小さな{容器|ようき}で箱を作る。
+小さな{貯金|ちょきん}箱を作る。
+合計の{金額|きんがく}を確かめる。
+広い{農耕|のうこう}地帯。
+人口の{増減|ぞうげん}を調べる。
+今年は米が{豊作|ほうさく}だ。
+{国際化|こくさいか}を推進する。
+{小麦粉|こむぎこ}を輸入する。
+小麦粉を{輸入|ゆにゅう}する。
+{貿易|ぼうえき}で利益を得る。
+貿易で{利益|りえき}を得る。
+この{山脈|さんみゃく}は資源がほう富だ。
+{鉱物|こうぶつ}資源がほう富だ。
+家電{製品|せいひん}を輸出する。
+家電製品を{輸出|ゆしゅつ}する。
+{綿花|めんか}を原料とした織物。
+綿花を原料とした{織物|おりもの}。
+パソコンが{故|こ}障する。
+{貧|まず}しい知識。
+無実を{証明|しょうめい}する。
+{技術|ぎじゅつ}担当の責任者。
+技術担当の{責任|せきにん}者。
+{新型|しんがた}ロボットの構造。
+新型ロボットの{構造|こうぞう}。
+車を{効率|こうりつ}よく検査する。
+車を効率よく{検査|けんさ}する。
+失敗の{原因|げんいん}を解明する。
+失敗の原因を{解明|かいめい}する。
+テレビに{付属|ふぞく}する機能。
+テレビに付属する{機能|きのう}。
+{総力戦|そうりょくせん}で勝つ。
+勝って{喜|よろこ}ぶ。
+{仮説|かせつ}を実験で確かめる。
+仮説を実験で{確|たし}かめる。
+宿題を{提出|ていしゅつ}する。
+入場を{許可|きょか}する。
+録音した曲を{再生|さいせい}する。
+{複写|ふくしゃ}したデータ。
+データが{破損|はそん}する。
+席の{禁止|きんし}事項。
+分{厚|あつ}い本。
+分厚い{資料|しりょう}を読む。
+作品の{貸|か}し出し。
+貸し出しの{条件|じょうけん}。
+{評判|ひょうばん}のよい本。
+本の{編者|へんじゃ}。
+新たな{知識|ちしき}を得る。
+{情報|じょうほう}を集める。
+本の{刊行|かんこう}年。
+{出版|しゅっぱん}社を調べる。
+{規則|きそく}正しく並ぶ。
+{殺風景|さっぷうけい}な部屋。
+{芸術|げいじゅつ}作品をながめる。
+町の{財産|ざいさん}を守る。
+{略図|りゃくず}をかく。
+地図を{表示|ひょうじ}する。
+{武士|ぶし}の像。
+武士の{銅像|どうぞう}がある。
+{犯罪|はんざい}をふせぐ。
+犯罪の{防止|ぼうし}に努める。
+{職業|しょくぎょう}について話す。
+職業について{講演|こうえん}する。
+{消毒液|しょうどくえき}で手をあらう。
+手を{清潔|せいけつ}にする。
+入場を{制限|せいげん}する。
+{混雑|こんざつ}をふせぐ。`,
+s8:`つり{針|ばり}を外す。
+{針葉樹|しんようじゅ}の森。
+針に糸を{通|とお}す。
+{方針|ほうしん}を決める。
+青い{宝石|ほうせき}。
+{宝物|たからもの}を探す。
+{国宝|こくほう}の仏像。
+海の{財宝|ざいほう}。
+{灰色|はいいろ}の雲。
+{灰|はい}がたまる。
+{火山灰|かざんばい}がふる。
+五キロを{優|ゆう}にこえる。
+大会で{優勝|ゆうしょう}する。
+{優美|ゆうび}な姿。
+{優先|ゆうせん}して進める。
+列を{乱|みだ}す。
+ボールを{乱打|らんだ}する。
+頭が{混乱|こんらん}する。
+ごみが{散乱|さんらん}する。
+夕日に{染|そ}まる。
+空が赤く{染|そ}まる。
+{染|そ}め物を習う。
+かばんを{預|あず}かる。
+銀行に{預金|よきん}する。
+荷物を{預|あず}ける。
+役を{退|しりぞ}く。
+直ちに{退去|たいきょ}する。
+初戦で{敗退|はいたい}する。
+試合を{退場|たいじょう}する。
+{一寸|いっすん}の長さ。
+洋服の{寸法|すんぽう}。
+的に矢を{射|い}る。
+{注射|ちゅうしゃ}を打つ。
+光の{反射|はんしゃ}。
+ロケットの{発射|はっしゃ}。
+{磁石|じしゃく}の性質。
+{磁気|じき}を帯びる。
+{磁力|じりょく}の利用。
+たくましい{背中|せなか}。
+雨が{降|ふ}る。`,
+s9:`歴代の{天皇|てんのう}。
+{皇后|こうごう}陛下。
+皇后{陛下|へいか}。
+{皇室|こうしつ}の行事。
+{皇太子|こうたいし}さま。
+{政党|せいとう}を支持する。
+{党首|とうしゅ}会談。
+新しい{内閣|ないかく}。
+{天守閣|てんしゅかく}からのながめ。
+{都庁|とちょう}の建物。
+{文化庁|ぶんかちょう}の建物。
+{官庁|かんちょう}につとめる。
+{裁判所|さいばんしょ}を見学する。
+罪を{裁|さば}く。
+{裁決|さいけつ}を下す。
+{洋裁|ようさい}を習う。
+{憲法|けんぽう}を定める。
+{児童憲章|じどうけんしょう}を読む。
+{熟語|じゅくご}を覚える。
+{財宝|ざいほう}を見つける。
+{危険|きけん}な場所。
+平和を{宣言|せんげん}する。
+品物の{価値|かち}。
+{自己|じこ}しょうかいをする。
+{利己的|りこてき}な考え。
+{翌日|よくじつ}の天気。
+{翌週|よくしゅう}の計画。
+{翌年|よくねん}の春。
+{山頂|さんちょう}からのながめ。
+雪を{頂|いただ}く山。
+山の{頂|いただき}に立つ。
+{頂上|ちょうじょう}に着く。
+目的地に{至|いた}る。
+{至急|しきゅう}の用事。
+駅に{至|いた}る道。`,
+// スペシャルステージ：見なおしシート「十月までの漢字のまとめ」（青葉出版 6年東）の50問
+sp:`{値|ね}段が上がる。
+{探|たん}検する。
+{株|かぶ}式会社。
+道に{沿|そ}って歩く。
+ご飯を{盛|も}る。
+乗車{券|けん}。
+{潮|しお}風がふく。
+魚の{骨|ほね}。
+{棒|ぼう}グラフ。
+{穴|あな}をほる。
+{銭|せん}湯に行く。
+四{捨|しゃ}五入。
+川の{源|みなもと}。
+{分担|ぶんたん}する。
+{価値|かち}が高い。
+{感激|かんげき}する。
+{疑問|ぎもん}に思う。
+車の{故障|こしょう}。
+{俳句|はいく}をよむ。
+妹の{看病|かんびょう}。
+太平洋{沿岸|えんがん}。
+バスの{座席|ざせき}。
+水玉{模様|もよう}。
+{専用|せんよう}の車。
+{単純|たんじゅん}な話。
+{満潮|まんちょう}の時刻。
+動物の{骨格|こっかく}。
+{地層|ちそう}を調べる。
+{興奮|こうふん}する。
+{延長|えんちょう}コード。
+{鉄鋼|てっこう}業。
+{批判|ひはん}する。
+{体操|たいそう}をする。
+{服装|ふくそう}を整える。
+{資源|しげん}を守る。
+{法律|ほうりつ}の勉強。
+日本の{経済|けいざい}。
+論文の{著者|ちょしゃ}。
+{人権|じんけん}を守る。
+{激|はげ}しい雨がふる。
+目を{疑|うたが}う。
+言葉を辞典で{探|さが}す。
+荷物が{届|とど}く。
+市役所に{勤|つと}める。
+勇気を{奮|ふる}う。
+試合の時間が{延|の}びる。
+とても{困|こま}る。
+勝利を{収|おさ}める。
+ごみを{捨|す}てる。
+規則に{従|したが}う。`
+};
+
+// ===== 部首（テキストの「新しい漢字」のページにある部首）=====
+const BUSHU = {
+ 善:['口','くち'], 厳:['⺍','つ'], 供:['亻','にんべん'], 敬:['攵','のぶん'], 仁:['亻','にんべん'], 俵:['亻','にんべん'], 異:['田','た'],
+ 窓:['穴','あなかんむり'], 蚕:['虫','むし'], 裏:['衣','ころも'], 脳:['月','にくづき'], 臨:['臣','しん'], 創:['刂','りっとう'], 穀:['禾','のぎ'],
+ 視:['見','みる'], 遺:['辶','しんにょう'], 論:['言','ごんべん'], 策:['竹','たけかんむり'], 署:['罒','あみがしら'], 臓:['月','にくづき'],
+ 俳:['亻','にんべん'], 舌:['舌','した'], 探:['扌','てへん'], 沿:['氵','さんずい'], 誕:['言','ごんべん'], 届:['尸','しかばね'], 株:['木','きへん'],
+ 看:['目','め'], 座:['广','まだれ'], 忘:['心','こころ'], 盛:['皿','さら'], 券:['刀','かたな'], 専:['寸','すん'], 模:['木','きへん'], 純:['糸','いとへん'],
+ 勤:['力','ちから'], 潮:['氵','さんずい'], 骨:['骨','ほね'], 棒:['木','きへん'], 穴:['穴','あな'], 層:['尸','しかばね'], 奮:['大','だい'],
+ 延:['廴','えんにょう'], 銭:['金','かねへん'], 鋼:['金','かねへん'], 批:['扌','てへん'], 操:['扌','てへん'], 激:['氵','さんずい'], 縮:['糸','いとへん'],
+ 困:['囗','くにがまえ'], 収:['又','また'], 捨:['扌','てへん'], 装:['衣','ころも'], 源:['氵','さんずい'], 律:['彳','ぎょうにんべん'], 従:['彳','ぎょうにんべん'],
+ 済:['氵','さんずい'], 著:['艹','くさかんむり'], 権:['木','きへん'], 冊:['冂','けいがまえ'], 腹:['月','にくづき'], 縦:['糸','いとへん'], 納:['糸','いとへん'],
+ 秘:['禾','のぎへん'], 密:['宀','うかんむり'], 派:['氵','さんずい'], 泉:['水','みず'], 訪:['言','ごんべん'], 絹:['糸','いとへん'], 除:['阝','こざとへん'],
+ 宅:['宀','うかんむり'], 蒸:['艹','くさかんむり'], 聖:['耳','みみ'], 針:['金','かねへん'], 宝:['宀','うかんむり'], 灰:['火','ひ'], 優:['亻','にんべん'],
+ 乱:['乚','おつ'], 染:['木','き'], 預:['頁','おおがい'], 退:['辶','しんにょう'], 寸:['寸','すん'], 射:['寸','すん'], 磁:['石','いしへん'],
+ 皇:['白','しろ'], 后:['口','くち'], 陛:['阝','こざとへん'], 党:['儿','ひとあし'], 閣:['門','もんがまえ'], 庁:['广','まだれ'], 裁:['衣','ころも'],
+ 憲:['心','こころ'], 己:['己','おのれ'], 翌:['羽','はね'], 頂:['頁','おおがい'], 至:['至','いたる'], 値:['亻','にんべん'], 担:['扌','てへん'],
+ 疑:['疋','ひき'], 障:['阝','こざとへん'], 熟:['灬','れんが'], 危:['卩','ふしづくり'], 宣:['宀','うかんむり'], 背:['月','にく'], 段:['殳','るまた'],
+ 誌:['言','ごんべん'], 俵:['亻','にんべん'], 骨:['骨','ほね'], 我:['戈','ほこづくり'], 揮:['扌','てへん'], 拡:['扌','てへん'], 郷:['阝','おおざと'],
+};
+const BUSHU_NAMES = [...new Set(Object.values(BUSHU).map(x => x[1]))];
+// その問題の中で 部首をきける漢字（6年の新しい漢字を優先）
+function bushuChar(it){ return [...it.target].find(c => BUSHU[c]) || null; }
+function bushuChoices(ch, n = 4){
+  const ans = BUSHU[ch][1];
+  // 形が近い部首（〜へん・〜かんむり など）をまちがいに入れて、むずかしくする
+  const kind = ans.replace(/^.*?(へん|かんむり|がまえ|にょう|づくり|がしら|だれ)$/, '$1');
+  const near = shuffle(BUSHU_NAMES.filter(x => x !== ans && kind !== ans && x.endsWith(kind)));
+  const rest = shuffle(BUSHU_NAMES.filter(x => x !== ans && !near.includes(x)));
+  return shuffle([ans, ...near.concat(rest).slice(0, n - 1)]);
+}
+
+// まちがえやすい形の漢字（書きの選択肢に使う）
+const LOOK = "針計鉢,宝室実,灰炭反,優憂億,乱舌辞,染梁柒,預頂領,退追週,寸付村,射謝身,磁滋慈,皇星呈,后石右,陛階陸,党堂賞,閣閉関,庁丁斤,裁栽載,憲害寒,己已巳,翌習羽,頂預順,至室到,値植置,担胆坦,疑凝擬,障章暗,探深採,沿治浴,届居屈,株殊様,看着者,座庫坐,盛成感,券巻拳,専博恵,俳排非,模漠横,純鈍紙,勤勧動,潮湖激,骨滑過,棒俸奉,穴空究,層僧増,奮奪奮,延廷建,銭浅残,鋼綱網,批比此,操燥繰,困因固,収取叔,捨拾舎,装壮製,源原泳,律津建,従徒縦,済斉清,著者署,権確観,冊皿再,腹複復,縦従織,納内紛,秘必祝,密蜜宮,派脈泳,泉線原,訪防坊,絹網緑,除徐余,宅宇安,蒸承茎,聖星望,善喜羊,厳敢巌,供共洪,敬警驚,仁任化,俵表依,異翼黒,比北此,窓総忍,蚕天虫,裏表衰,脳悩胸,臨監覧,創倉割,穀殻殺,視現観,遺遣遠,論輪倫,策築束,署暑著,臓蔵贈,舌古話,誕延証,忘亡忙,発登廃,玉王宝,型形刑,規視観,転軽伝,満備清,興典輿,勇男湧,期旗基,判半伴,圧庄厚,縮宿縦,激潮敷,巻券拳,修終収,治始台,校絞較,舎捨害,因困固,織職識,綿線綺,脈派泳,鉱広拡,製制装,輸輪論,貿賀貸,益盆溢,証正政,術述街,責貴積,造告適,効郊幼,検険験,構講溝,型形刑,解角触,属嘱尾,能態熊,総絵縦,喜善嘉,仮反板,説税鋭,確権穫,往住柱,復複腹,価仙何,格各略,程呈提,費貴資,営栄蛍,比北皆,序予字,快決快,適滴摘,移多稼,寄奇騎,港湖巷,単独弾,独虫濁,辺迫込,境鏡竟,夫天失,妻妾毒,似以仁,容答客,器囲黙,貯貸財,額客類,耕井畑,増僧層,減滅感,豊農曲,際祭察,麦夏表,粉紛紡,故古枯,貧貪貨";
+const LOOKMAP = {};
+LOOK.split(',').forEach(s => { const [k, ...v] = [...s]; LOOKMAP[k] = [...new Set([...(LOOKMAP[k]||[]), ...v.filter(c => c !== k)])]; });
+
+// ===== 章とステージと鬼 =====
+// 章 = テキストの単元。章の問題を順番にステージへ分ける。art = 鬼の絵の名前、bg = 背景
+const CHAPTERS = [
+ {id:'s1', name:'一学期のふくしゅう', key:[0, 0], sky:['#3a2040','#c06040'], stages:[
+  {area:'夕暮れの村', art:'o11', bg:'bgW1', mons:[['いたずら小鬼','slime'],['からかさおばけ','bat'],['ちょうちんおばけ','ghost'],['青い小鬼','slime'],['金棒の赤鬼','golem']]},
+  {area:'竹やぶの小道', art:'o12', bg:'bgW2', mons:[['たけのこ小鬼','slime'],['化けダヌキ','mush'],['竹の精の鬼','ghost'],['一つ目小僧','mush'],['竹よろいの大鬼','golem']]}]},
+ {id:'s2', name:'いま始まる新しいいま', key:[-2, -6], sky:['#203828','#507850'], stages:[
+  {area:'杉の森', art:'o21', bg:'bgW3', mons:[['木の葉天狗','bat'],['キツツキ妖怪','bat'],['きりかぶおばけ','mush'],['フクロウ鬼','ghost'],['大天狗','golem']]},
+  {area:'霧の山道', art:'o22', bg:'bgW4', mons:[['霧の小鬼','ghost'],['山びこ','ghost'],['ろくろ首','ghost'],['山伏の鬼','mush'],['霧の山鬼','golem']]},
+  {area:'滝の修行場', art:'o23', bg:'bgW5', mons:[['河童','mush'],['水しぶき小鬼','slime'],['カエル侍','mush'],['竜の子','dragon'],['白い大蛇','dragon']]}]},
+ {id:'s3', name:'模型のまち', key:[3, 6], sky:['#201830','#604070'], stages:[
+  {area:'夜の城下町', art:'o31', bg:'bgW6', mons:[['ちょうちん小鬼','slime'],['猫又','mush'],['のっぺらぼう','ghost'],['鬼の飛脚','mush'],['牛鬼','golem']]},
+  {area:'からくり屋敷', art:'o32', bg:'bgW7', mons:[['からくり人形鬼','mush'],['ぜんまいネズミ','slime'],['ふすまの目','ghost'],['はしご鬼','mush'],['からくり大鬼','golem']]},
+  {area:'洋館の時計塔', art:'o33', bg:'bgW8', mons:[['柱時計おばけ','ghost'],['ランプの鬼火','ghost'],['ガス灯小鬼','slime'],['鬼の紳士','mush'],['時計顔の大鬼','golem']]}]},
+ {id:'s4', name:'力だめし', key:[-3, 4], sky:['#300810','#702030'], stages:[
+  {area:'鬼の塔・下層', art:'o41', bg:'bgW9', mons:[['石の小鬼','slime'],['鬼火','ghost'],['くさり鬼','mush'],['門番の青鬼','mush'],['二本角の門番鬼','golem']]},
+  {area:'鬼の塔・屋上', art:'o42', bg:'bgW10', mons:[['雷の小鬼','slime'],['風の鬼','ghost'],['カラス天狗','bat'],['雷太鼓の鬼','mush'],['雷神鬼','golem']]}]},
+ {id:'s5', name:'永遠のごみプラスチック', key:[2, -4], sky:['#081830','#205070'], stages:[
+  {area:'夜の海辺', art:'o51', bg:'bgW11', mons:[['海坊主の子','slime'],['人魚おばけ','ghost'],['流木の鬼','mush'],['ごみ妖怪','slime'],['ごみ海坊主','golem']]},
+  {area:'難破船', art:'o52', bg:'bgW12', mons:[['幽霊船乗り','ghost'],['いかりの鬼','mush'],['クラゲ妖怪','ghost'],['タコの鬼','slime'],['あみかぶり大ガニ','golem']]},
+  {area:'海底の竜宮', art:'o53', bg:'bgW13', mons:[['アンコウ鬼','ghost'],['サンゴ小鬼','slime'],['マイクロプラ妖怪','slime'],['竜宮の鬼兵','mush'],['ごみの竜','dragon']]}]},
+ {id:'s6', name:'プレゼンテーションをしよう', key:[5, -8], sky:['#201010','#604030'], stages:[
+  {area:'山寺', art:'o61', bg:'bgW14', mons:[['木魚妖怪','slime'],['ほうきの付喪神','bat'],['鐘の鬼','mush'],['地蔵化け鬼','mush'],['仁王鬼','golem']]},
+  {area:'温泉宿', art:'o62', bg:'bgW15', mons:[['湯けむり小鬼','slime'],['手ぬぐい妖怪','ghost'],['おけの付喪神','mush'],['雪女の子','ghost'],['鬼の鳳凰','dragon']]}]},
+ {id:'s7', name:'五年生の漢字', key:[-5, 10], sky:['#180808','#401020'], stages:[
+  {area:'鬼の城・門', art:'o71', bg:'bgW16', mons:[['がいこつ足軽','mush'],['鬼の犬','mush'],['やり小鬼','slime'],['青い火の玉','ghost'],['黒甲冑の鬼武者','golem']]},
+  {area:'鬼の城・書庫', art:'o72', bg:'bgW17', mons:[['かみつき巻物','bat'],['墨スライム鬼','slime'],['筆の付喪神','ghost'],['すずり鬼','mush'],['書物の鬼','golem']]},
+  {area:'鬼の城・天守', art:'o73', bg:'bgW18', mons:[['鬼の忍者','mush'],['しゃちほこ鬼','bat'],['屏風の虎','mush'],['宝箱の鬼','slime'],['双頭の鬼','golem']]},
+  {area:'鬼の城・玉座', art:'o74', bg:'bgW19', mons:[['鬼の家来','mush'],['鬼の家老','mush'],['鬼のくノ一','mush'],['鬼の侍大将','golem'],['漢字の鬼王','dragon']]}]},
+ {id:'s8', name:'海のいのち', key:[1, 2], sky:['#081028','#203860'], stages:[
+  {area:'夜の漁村', art:'o81', bg:'bgW20', mons:[['網の付喪神','ghost'],['夜光虫の鬼火','ghost'],['クエ妖怪','mush'],['もり持ちの鬼','mush'],['大魚の鬼','dragon']]},
+  {area:'嵐の海', art:'o82', bg:'bgW21', mons:[['波の小鬼','slime'],['雷雲の鬼','ghost'],['うず潮妖怪','ghost'],['鬼の水軍兵','mush'],['嵐の海竜','dragon']]}]},
+ {id:'s9', name:'季節の足音 冬', key:[-4, 6], sky:['#182030','#5070a0'], stages:[
+  {area:'雪の街道', art:'o91', bg:'bgW22', mons:[['雪だるま鬼','slime'],['つらら小鬼','slime'],['雪女','ghost'],['雪ん子','slime'],['雪の大鬼','golem']]},
+  {area:'氷の宮殿', art:'o92', bg:'bgW23', mons:[['氷の衛兵鬼','mush'],['冬の精の鬼','ghost'],['氷の鳥','bat'],['氷鏡の鬼','ghost'],['冬の女王鬼','dragon']]}]},
+];
+const WEAK_STAGE = {id:'weak', art:'weak', bg:'bgW24', name:'にがて復習', area:'にがて鬼の洞くつ', sky:['#2a1020','#5a2040'], key:[-7, -10], diff:3,
+  mons:[['なき虫小鬼','slime'],['ピンクおばけ','ghost'],['にがて大鬼','golem']]};
+
+// ===== データを読む =====
+const ITEMS = {};
+const ALL = [];
+for (const [sid, txt] of Object.entries(RAW)) {
+  ITEMS[sid] = txt.split('\n').map(s => s.trim()).filter(Boolean).map((line, i) => {
+    const m = line.match(/^(.*)\{([^|]+)\|([^}]+)\}(.*)$/);
+    const it = {id: sid + '-' + i, sid, pre: m[1], target: m[2], yomi: m[3], post: m[4]};
+    ALL.push(it); return it;
+  });
+}
+const KANJI_POOL = [...new Set(ALL.flatMap(it => [...it.target]).filter(c => /[\u4e00-\u9fff]/.test(c)))];
+// 章の問題をステージに分ける（教科書の順番のまま）
+const STAGE_LIST = [];
+CHAPTERS.forEach((ch, ci) => {
+  // 章の問題を、ステージに順番に1問ずつ配る（どのステージにも章ぜんたいの漢字が出るように）
+  const items = ITEMS[ch.id], k = ch.stages.length;
+  ch.stages.forEach((st, si) => {
+    Object.assign(st, {id: ch.id + '-' + (si + 1), ch, ci, si, name: ch.name, sky: ch.sky,
+      items: items.filter((_, i) => i % k === si), diff: ci + si * .6, key: [ch.key[0] + si * 2, ch.key[1] + si * 4]});
+    STAGE_LIST.push(st);
+  });
+});
+
+// ===== セーブ =====
+const DEF = {lv:1, exp:0, cleared:{}, beaten:{}, weak:{}, mode:'mix', kaki:'choice', sound:true, bgm:true, total:0,
+  login:{last:'', streak:0, days:0}, daily:null, items:{potion:0, seed:0}, stamps:{}, rival:{}, allies:[], kisho:{}, mastery:{}, dex:{}, dexRw:0, stars:{}, tama:0, swords:{bokuto:0}, sword:'bokuto', hyaku:{best:0}, revDone:'', ending:false, special:{lv:1, best:0, met:false}, job:'hero', jobsUsed:{hero:true}};
+let S = JSON.parse(JSON.stringify(DEF));
+try { const d = JSON.parse(localStorage.getItem('kanjioni6') || 'null'); if (d) S = Object.assign(JSON.parse(JSON.stringify(DEF)), d); } catch (e) {}
+function save(){ try { localStorage.setItem('kanjioni6', JSON.stringify(S)); } catch (e) {} }
+// 前のバージョン（章ごとに1ステージ）のクリア記録を、その章の最初のステージにうつす
+for (const ch of CHAPTERS) if (S.cleared[ch.id]) { S.cleared[ch.id + '-1'] = Math.max(S.cleared[ch.id + '-1'] || 0, S.cleared[ch.id]); delete S.cleared[ch.id]; }
+
+// ===== 剣士のステータス =====
+// 見た目が変わるレベルと、そのときの称号
+const HERO_TIERS = [[1,'見習い剣士'],[3,'新米剣士'],[5,'波の剣士'],[8,'水月の剣士'],[11,'白金の剣士'],[14,'桜の剣士'],[17,'朱雲の剣士'],[20,'迅雷の剣士'],[25,'日輪の剣士'],[30,'伝説の剣士']];
+const TITLES = HERO_TIERS.concat([[35,'剣聖'],[40,'漢字の剣神']]);
+// 剣のきらめきの色（見た目の段階ごと）
+const SLASH_COLOR = ['#e8c48a','#e6ecff','#6ac0ff','#bfeaff','#ffe7a0','#ffb0d0','#ff6a3a','#c78aff','#fff3b0','rainbow'];
+// レベルでおぼえる「わざ」
+const SKILLS = [
+  {id:'tame', lv:4, name:'溜め斬り', desc:'3れんぞく正解で かいしんの一撃'},
+  {id:'renzoku', lv:7, name:'二段斬り', desc:'かいしんの一撃が 2回こうげきになる'},
+  {id:'tate', lv:10, name:'見切り', desc:'うけるダメージが 3わりへる'},
+  {id:'iyashi', lv:13, name:'気をととのえる', desc:'正解するたびに HPが少し回復'},
+  {id:'hissatsu', lv:18, name:'奥義・漢字一閃', desc:'5れんぞく正解で 3ばいの大ダメージ'},
+  {id:'aura', lv:23, name:'剣気', desc:'こうげき力が 2わりアップ'},
+  {id:'tenku', lv:28, name:'鬼斬り', desc:'ボスへのダメージが 1.5ばい'},
+];
+const hasSkill = id => S.lv >= SKILLS.find(k => k.id === id).lv;
+const titleOf = lv => TITLES.filter(t => lv >= t[0]).pop()[1];
+const needExp = lv => 20 + lv * 15;
+// ===== 職業（転職）=====
+// atk/hp/mp = のうりょくの倍率。skill = その職業の特技（MPをつかう）
+const JOBS = {
+  hero:    {name: '剣士',     lv: 1,  atk: 1,    hp: 1,    mp: 1,   color: '#bde0ff',
+            desc: 'バランスのとれた 鬼斬りの剣士', skill: {name: '渾身の一太刀', mp: 10, desc: '次の正解で ダメージ3ばい＋HPを2わり回復'}},
+  warrior: {name: '焔の流派', lv: 10, atk: 1.25, hp: 1.3,  mp: .6,  color: '#ff7a3a',
+            desc: 'HPと こうげき力が高い 力の剣', skill: {name: '焔・大車輪', mp: 6, desc: '次の正解で ダメージ2.5ばい'}},
+  priest:  {name: '桜の流派', lv: 10, atk: .9,  hp: 1.1,  mp: 1.4, color: '#ffb0d0',
+            desc: 'いやしの舞をつかう 守りの剣', skill: {name: '桜・いやしの舞', mp: 8, desc: 'HPが ぜんかいふくする'}},
+  mage:    {name: '雷の流派', lv: 10, atk: .9,  hp: .85, mp: 1.6, color: '#ffe14d',
+            desc: '雷のように 一気にせめる剣', skill: {name: '雷・天雷落とし', mp: 12, desc: '問題に答えなくても こうげき力4ばいの 雷ダメージ'}},
+  ninja:   {name: '影の流派', lv: 15, atk: 1.1, hp: 1,    mp: 1,   color: '#c0c8ff',
+            desc: 'すばやい身のこなしの かげの剣', skill: {name: '影・残像', mp: 6, desc: '次に2回まちがえても ダメージをうけない'}},
+  sage:    {name: '月の流派', lv: 20, atk: 1,   hp: 1,    mp: 1.5, color: '#c8d8ff',
+            desc: 'すべてを見通す 心眼の剣', skill: {name: '月・心眼', mp: 5, desc: '4たくが2たくになる／手書きのときは お手本がうすく出る'}},
+};
+const jobId = () => (JOBS[S.job] ? S.job : 'hero');
+const JOB = () => JOBS[jobId()];
+const atkOf = lv => Math.round((9 + lv * 2) * JOB().atk);
+const maxHpOf = lv => Math.round((40 + lv * 6) * JOB().hp);
+const maxMpOf = lv => Math.round((12 + lv * 2) * JOB().mp);
+const MP_GAIN = () => jobId() === 'sage' ? 4 : 3;   // 正解するたびに回復するMP
+
+// ===== サウンド =====
+let AC = null;
+// ===== 効果音（楽器の録音を使う。鳴る瞬間だけ BGM を小さくして 聞こえやすくする）=====
+const SE_INST = {square: 'trumpet', triangle: 'koto', sawtooth: 'french_horn'};
+let seNoise = null;
+function seReady(){
+  AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+  BGM.ctx();
+  if (!seNoise) { seNoise = AC.createBuffer(1, AC.sampleRate * .5, AC.sampleRate); const d = seNoise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  return BGM.seOut();
+}
+// 音の高さ(Hz)と長さのならびを鳴らす。低い音はティンパニ、短い音は琴になる
+function tone(seq, type = 'square', vol = .06){
+  if (!S.sound) return;
+  try {
+    const out = seReady(); BGM.duck();
+    let t = AC.currentTime;
+    for (const [f, d] of seq) {
+      const m = Math.round(69 + 12 * Math.log2(f));
+      const inst = m < 48 ? 'timpani' : d <= .03 ? 'koto' : SE_INST[type] || 'trumpet';
+      const v = Math.min(.95, vol * (d <= .03 ? 8 : 11));
+      if (!BGM.smp(inst, m, t, Math.max(d * 1.4, .14), v, out, {att: .005, rel: .25, norm: true})) {
+        const o = AC.createOscillator(), g = AC.createGain();
+        o.type = type; o.frequency.value = f; g.gain.setValueAtTime(Math.min(.5, vol * 4), t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + d);
+      }
+      t += d * .9;
+    }
+  } catch (e) {}
+}
+// 刀を振る「シュッ」という風切り音
+function swish(vol = .5, dur = .2){
+  const out = seReady(), t = AC.currentTime;
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = seNoise; f.type = 'bandpass'; f.Q.value = 1.4;
+  f.frequency.setValueAtTime(4200, t); f.frequency.exponentialRampToValueAtTime(700, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + dur + .02);
+}
+function hitSnd(m, vol, inst = 'taiko_drum', delay = .05){
+  const out = seReady();
+  if (!BGM.smp(inst, m, AC.currentTime + delay, 1, vol, out, {oneshot: true, norm: true})) tone([[90, .12]], 'sawtooth', .08);
+}
+const SE = {
+  hit: () => { if (!S.sound) return; BGM.duck(); swish(.5); hitSnd(50, .72); },
+  crit: () => { if (!S.sound) return; BGM.duck(); swish(.6, .26); hitSnd(60, .62, 'orchestra_hit'); hitSnd(43, .5, 'timpani', .08); },
+  ouch: () => { if (!S.sound) return; BGM.duck(); hitSnd(38, .68, 'taiko_drum', 0); hitSnd(36, .45, 'timpani', .02); tone([[110, .15], [98, .2]], 'sawtooth', .05); },
+  win: () => tone([[523, .1], [659, .1], [784, .1], [1047, .3]], 'square', .07),
+  lvup: () => { tone([[523, .08], [659, .08], [784, .08], [1047, .08], [1319, .35]], 'square', .08); if (S.sound) { const out = seReady(); [60, 64, 67, 72].forEach(m => BGM.smp('choir_aahs', m, AC.currentTime + .35, .9, .3, out, {att: .1, rel: .5, norm: true})); } },
+  tap: () => tone([[1175, .03]], 'triangle', .05),
+};
+
+// ===== BGM（WebAudioでその場で鳴らすファミコン風の曲）=====
+// 記法: 音名:長さ（8分音符いくつ分）。R は休み。| は小節の区切り（読みやすさのためだけ）
+const SONGS = {
+  // ---- 六鬼将戦（陰音階・速い）----
+  kisho: {tempo: 176, loop: true, style: 'drive', drums: 'tkhstkhc', wave: 'sawtooth',
+    lead: `A5:1 A5:1 A#5:1 D6:1 E6:2 F6:2 | E6:1 D6:1 A#5:1 D6:1 A5:4 | F6:1 E6:1 D6:1 E6:1 F6:2 A6:2 | G#6:2 E6:2 B5:4 | A5:2 C6:1 D6:1 E6:2 F6:2 | E6:2 D6:1 A#5:1 A5:4 | D6:2 E6:2 F6:2 G#6:2 | A6:6 R:2`,
+    harm: `E5:8 | D5:8 | A5:8 | E5:8 | C5:8 | A#4:8 | B4:8 | E5:8`, pad: 'Am Bb Dm E Am Bb Dm E', roots: 'A2 A#2 D3 E2 A2 A#2 D3 E2'},
+  // ---- 鬼の王・人の姿（上品で不気味）----
+  maou1: {tempo: 104, loop: true, style: 'calm', drums: 't...c...', wave: 'triangle', organ: true,
+    lead: `D5:3 F5:1 A5:2 D6:2 | C#6:3 E6:1 A5:4 | A#5:3 A5:1 G5:2 F5:2 | E5:2 F5:2 G5:2 A5:2 | D6:3 C6:1 A#5:2 A5:2 | G5:3 A#5:1 E5:4 | F5:2 G5:2 A5:2 C#6:2 | D6:6 R:2`,
+    harm: `A4:8 | E5:8 | D5:8 | C#5:8 | F5:8 | D5:8 | A4:8 | F5:8`, pad: 'Dm A Gm A Bb Gm A Dm', roots: 'D3 A2 G2 A2 A#2 G2 A2 D3'},
+  // ---- 鬼の王・百鬼の姿（いちばん激しい）----
+  maou2: {tempo: 184, loop: true, style: 'drive', drums: 'ctkhskhs', wave: 'sawtooth', organ: true,
+    lead: `D6:1 D6:1 D#6:1 G6:1 A6:2 A#6:2 | A6:1 G6:1 D#6:1 G6:1 D6:4 | A#5:1 C6:1 D6:1 D#6:1 F6:2 G6:2 | F#6:2 D6:2 A5:4 | D6:2 F6:1 G6:1 A6:2 A#6:2 | C7:2 A#6:1 A6:1 G6:4 | F#6:2 G6:2 A6:2 C7:2 | D7:6 R:2`,
+    harm: `A5:8 | G5:8 | D#5:8 | D5:8 | F5:8 | G5:8 | D5:8 | F#5:8`, pad: 'Gm Eb Cm D Gm Cm D D', roots: 'G2 D#3 C3 D3 G2 C3 D3 D3'},
+  // ---- 仲間が加わる ----
+  allyjoin: {tempo: 132, loop: false, style: 'none', drums: '',
+    lead: `G4:1 C5:1 E5:1 G5:2 E5:1 G5:1 | C6:4 D6:2 E6:2 | G6:8`, bass: `C3:4 G2:4 | A2:4 G2:4 | C3:8`},
+  // ---- 和風の曲（都節音階・陽音階・陰音階）----
+  wamap: {tempo: 88, loop: true, style: 'calm', drums: 't.......', wave: 'triangle',
+    lead: `D5:2 E5:2 G5:2 A5:2 | B5:4 A5:2 G5:2 | A5:2 G5:2 E5:2 D5:2 | E5:6 R:2 | G5:2 A5:2 B5:2 D6:2 | B5:3 A5:1 G5:4 | A5:2 B5:2 A5:2 G5:2 | D5:6 R:2`,
+    pad: 'G Em C D G Em Am D', roots: 'G2 E2 C3 D3 G2 E2 A2 D3'},
+  wa1: {tempo: 150, loop: true, style: 'drive', drums: 'k.t.kht.', wave: 'square',
+    lead: `E5:1 F5:1 A5:2 B5:2 C6:2 | B5:1 A5:1 F5:2 E5:4 | A5:1 B5:1 C6:2 E6:2 C6:2 | B5:2 A5:2 B5:4 | C6:2 B5:1 A5:1 F5:2 A5:2 | B5:2 A5:1 F5:1 E5:4 | F5:2 A5:2 B5:2 C6:2 | E5:6 R:2`,
+    harm: `B4:8 | A4:8 | E5:8 | F5:8 | A5:8 | F5:8 | C5:8 | B4:8`, roots: 'E2 E2 A2 B2 A2 E2 F2 E2'},
+  wa2: {tempo: 138, loop: true, style: 'drive', drums: 'k.hsk.ht', wave: 'square',
+    lead: `A5:2 B5:1 D6:1 E6:2 D6:2 | B5:2 A5:2 F#5:4 | E5:1 F#5:1 A5:2 B5:2 D6:2 | E6:6 R:2 | F#6:2 E6:1 D6:1 B5:2 A5:2 | B5:2 D6:2 A5:4 | F#5:2 E5:2 F#5:2 A5:2 | A5:6 R:2`,
+    harm: `E5:8 | D5:8 | A4:8 | B5:8 | D6:8 | F#5:8 | B4:8 | E5:8`, roots: 'A2 D3 B2 E2 D3 B2 E2 A2'},
+  wa3: {tempo: 120, loop: true, style: 'drive', drums: 't..st.s.', wave: 'triangle',
+    lead: `D5:3 D#5:1 G5:2 A5:2 | A#5:4 A5:2 G5:2 | D#5:2 D5:2 A#4:2 D5:2 | D5:6 R:2 | G5:2 A5:2 A#5:2 D6:2 | D#6:3 D6:1 A#5:4 | A5:2 G5:2 D#5:2 G5:2 | D5:6 R:2`,
+    pad: 'Gm Eb Cm D Gm Eb Cm D', roots: 'G2 D#3 C3 D3 G2 D#3 C3 D3'},
+  waboss: {tempo: 168, loop: true, style: 'drive', drums: 'tkhstkhc', wave: 'sawtooth',
+    lead: `E5:1 E5:1 F5:1 A5:1 B5:2 C6:2 | B5:1 A5:1 F5:1 A5:1 E5:4 | E6:1 E6:1 C6:1 B5:1 C6:2 E6:2 | F6:2 E6:2 C6:4 | B5:1 C6:1 B5:1 A5:1 F5:2 A5:2 | B5:2 C6:2 E6:4 | F6:2 E6:2 C6:2 B5:2 | E5:6 R:2`,
+    harm: `B4:8 | A4:8 | C5:8 | A5:8 | F5:8 | E5:8 | A5:8 | B4:8`, pad: 'Am Am F F Dm E F E', roots: 'E2 E2 A2 F2 F2 E2 A2 E2'},
+  // ---- 章ごとの戦闘曲（ステージごとに調・テンポ・音色を変える）----
+  c1: {tempo: 144, loop: true, style: 'drive', drums: 'khshkhsh',
+    lead: `C5:1 E5:1 G5:2 E5:1 G5:1 C6:2 | B5:1 A5:1 G5:2 E5:4 | F5:1 A5:1 C6:2 A5:1 C6:1 F6:2 | E6:2 D6:2 C6:4 |
+           A5:2 B5:1 C6:1 D6:2 C6:2 | B5:2 G5:2 E5:4 | F5:2 E5:1 D5:1 E5:2 G5:2 | C5:6 R:2`,
+    harm: `E4:4 G4:4 | D5:4 C5:4 | A4:4 C5:4 | G5:4 E5:4 | F5:4 F5:4 | D5:4 B4:4 | A4:4 B4:4 | E4:8`,
+    roots: 'C3 C3 F2 C3 A2 E2 G2 C3'},
+  c2: {tempo: 132, loop: true, style: 'drive', drums: 'k.hsk.hs',
+    lead: `D5:2 F5:1 G5:1 A5:2 C6:2 | A5:2 G5:1 F5:1 G5:4 | A5:2 C6:1 D6:1 C6:2 A5:2 | G5:2 F5:2 D5:4 |
+           F5:1 G5:1 A5:2 G5:1 F5:1 D5:2 | C5:2 D5:2 F5:4 | G5:2 A5:1 C6:1 A5:2 G5:2 | D5:6 R:2`,
+    harm: `A4:8 | D5:8 | F5:8 | A4:8 | D5:8 | A4:8 | D5:8 | A4:8`,
+    roots: 'D3 C3 F2 D3 A#2 C3 G2 D3'},
+  c3: {tempo: 160, loop: true, style: 'drive', drums: 'kkshkksh',
+    lead: `E5:1 R:1 E5:1 G5:1 B5:1 R:1 A5:1 G5:1 | F#5:1 R:1 F#5:1 A5:1 D6:2 B5:2 | E5:1 R:1 E5:1 G5:1 B5:1 R:1 E6:2 | D6:1 C6:1 B5:1 A5:1 B5:4 |
+           C6:2 B5:1 A5:1 G5:2 E5:2 | A5:2 G5:1 F#5:1 E5:2 C5:2 | D5:1 E5:1 F#5:1 G5:1 A5:2 B5:2 | E5:6 R:2`,
+    roots: 'E2 D3 E2 B2 C3 A2 D3 E2'},
+  c4: {tempo: 150, loop: true, style: 'drive', drums: 'khskkhsh',
+    lead: `G4:2 D5:2 G5:3 F5:1 | D#5:2 D5:2 C5:4 | D#5:2 G5:2 A#5:3 A5:1 | G5:2 F#5:2 D5:4 |
+           D#5:1 F5:1 G5:2 F5:1 D#5:1 D5:2 | C5:1 D5:1 D#5:2 D5:1 C5:1 A#4:2 | A4:2 C5:2 D#5:2 F#5:2 | G5:6 R:2`,
+    harm: `D4:8 | G4:8 | G4:8 | D5:8 | C5:8 | G4:8 | F#4:8 | D5:8`,
+    roots: 'G2 D#3 C3 D3 C3 A#2 D3 G2'},
+  c5: {tempo: 120, loop: true, style: 'calm', drums: 'k..hs..h',
+    lead: `A5:3 G5:1 F5:2 C5:2 | D5:2 F5:2 A5:4 | A#5:3 A5:1 G5:2 E5:2 | F5:4 C5:4 |
+           D5:2 E5:2 F5:2 A5:2 | G5:3 F5:1 E5:2 C5:2 | D5:2 G5:2 E5:2 C5:2 | F5:6 R:2`,
+    pad: 'F Dm Bb F Dm C Gm F',
+    roots: 'F2 D3 A#2 F2 D3 C3 G2 F2'},
+  c6: {tempo: 126, loop: true, style: 'drive', drums: 'k.s.k.sh',
+    lead: `A4:2 A#4:1 C#5:1 E5:2 D5:2 | C#5:2 A#4:2 A4:4 | E5:2 F5:1 G#5:1 A5:2 G#5:2 | F5:2 E5:2 E5:4 |
+           D5:2 F5:1 A5:1 C6:2 A#5:2 | A5:2 G#5:1 F5:1 E5:4 | D5:2 C#5:2 A#4:2 C#5:2 | A4:6 R:2`,
+    pad: 'Am Bb Am E Dm Am Bb A',
+    roots: 'A2 A#2 A2 E2 D3 A2 A#2 A2'},
+  c7: {tempo: 140, loop: true, style: 'drive', drums: 'khskkhsk',
+    lead: `C5:1 D#5:1 G5:2 C6:2 A#5:1 G#5:1 | G5:2 D#5:2 C5:4 | G#4:1 C5:1 D#5:2 G#5:2 G5:1 F5:1 | G5:2 B4:2 D5:4 |
+           C5:2 D#5:1 F5:1 G5:2 G#5:2 | A#5:2 G#5:1 G5:1 F5:4 | D#5:2 D5:2 C5:2 B4:2 | C5:6 R:2`,
+    pad: 'Cm Cm G# G Cm A# G Cm',
+    roots: 'C3 C3 G#2 G2 C3 A#2 G2 C3'},
+  // ---- 仮面の剣士登場 ----
+  rival: {tempo: 156, loop: true, style: 'drive', drums: 'k.skk.sh', wave: 'sawtooth',
+    lead: `E5:2 R:1 E5:1 G5:2 A5:2 | B5:3 A5:1 G5:2 F#5:2 | E5:2 R:1 E5:1 G5:2 B5:2 | D6:3 C6:1 B5:4 |
+           C6:2 B5:1 A5:1 B5:2 G5:2 | A5:2 G5:1 F#5:1 G5:2 E5:2 | F#5:2 G5:2 A5:2 D#5:2 | E5:6 R:2`,
+    harm: `B4:8 | D5:8 | B4:8 | F#5:8 | E5:8 | C5:8 | D#5:8 | B4:8`,
+    roots: 'E2 G2 C3 B2 A2 C3 B2 E2'},
+  // ---- ラスボス：仮面をはずしたライバル（荘厳）----
+  final: {tempo: 100, loop: true, style: 'calm', drums: 't...t.tc', wave: 'triangle', organ: true,
+    lead: `D5:4 F5:2 A5:2 | A#5:4 A5:2 G5:2 | G5:4 A#5:2 D6:2 | C#6:6 A5:2 | D6:4 C6:2 A#5:2 | A5:4 F5:2 A5:2 | A#5:3 A5:1 G5:2 F5:2 | E5:6 R:2 |
+           F5:4 G5:2 A5:2 | C6:4 A#5:2 A5:2 | A#5:4 A5:2 G5:2 | A5:6 C#6:2 | D6:4 F6:2 E6:2 | D6:2 C6:2 A#5:2 A5:2 | G5:3 A5:1 A#5:2 C#6:2 | D6:8`,
+    harm: `A4:4 D5:4 | F5:4 F5:4 | D5:4 G5:4 | A5:6 E5:2 | A5:4 F5:4 | F5:4 C5:4 | D5:4 D5:4 | C#5:8 |
+           C5:4 E5:4 | A5:4 F5:4 | F5:4 D5:4 | E5:8 | A5:4 A5:4 | A#5:4 F5:4 | D5:4 E5:4 | A5:8`,
+    pad: 'Dm Bb Gm A Dm F Bb A F F Bb A Dm Bb Gm Dm',
+    roots: 'D3 A#2 G2 A2 D3 F2 A#2 A2 F2 F2 A#2 A2 D3 A#2 G2 D3'},
+  // ---- 隠しボス：漢字大魔神 ----
+  special: {tempo: 172, loop: true, style: 'drive', drums: 'chskkhsk', wave: 'sawtooth',
+    lead: `E5:1 G5:1 B5:1 E6:1 D6:2 B5:2 | C6:1 B5:1 A5:1 G5:1 A5:2 F#5:2 | E5:1 G5:1 B5:1 E6:1 F#6:2 E6:2 | D#6:4 B5:4 |
+           C6:2 B5:1 A5:1 G5:2 A5:2 | B5:2 A5:1 G5:1 F#5:2 G5:2 | A5:2 G5:1 F#5:1 E5:2 F#5:2 | D#5:4 B4:4 |
+           E5:2 E5:1 F#5:1 G5:2 B5:2 | A5:2 A5:1 B5:1 C6:2 E6:2 | D6:2 C6:1 B5:1 A5:2 D6:2 | B5:6 R:2 |
+           C6:1 B5:1 A5:1 G5:1 F#5:1 G5:1 A5:2 | B5:1 A5:1 G5:1 F#5:1 E5:1 F#5:1 G5:2 | A5:2 B5:2 C6:2 D#6:2 | E6:6 R:2`,
+    harm: `B4:8 | E5:8 | G5:8 | F#5:8 | E5:8 | D5:8 | C5:8 | F#5:8 | B4:8 | C5:8 | F#5:8 | D5:8 | E5:8 | B4:8 | F#5:8 | G5:8`,
+    pad: 'Em Am Em B C G Am B Em Am D G C Em B Em',
+    roots: 'E2 A2 E2 B2 C3 G2 A2 B2 E2 A2 D3 G2 C3 E2 B2 E2'},
+  // ---- 隠しボス Lv8〜（荘厳さを足したアレンジ）は下で作る ----
+  // ---- エンディング ----
+  ending: {tempo: 84, loop: true, style: 'calm', drums: '', wave: 'triangle',
+    lead: `E5:2 G5:2 C6:2 B5:1 A5:1 | G5:4 E5:2 G5:2 | F5:2 A5:2 D6:2 C6:1 B5:1 | C6:6 R:2 |
+           A5:2 C6:2 B5:2 A5:2 | G5:3 E5:1 C5:4 | D5:2 E5:2 F5:2 D5:2 | C5:8`,
+    pad: 'C C F C Am C G C',
+    roots: 'C3 C3 F2 C3 A2 C3 G2 C3'},
+  map: {tempo: 100, loop: true, style: 'calm', drums: 'k.h.k.h.',
+    lead: `E5:2 G5:2 C6:2 B5:1 A5:1 | G5:4 E5:2 G5:2 | F5:2 A5:2 D6:2 C6:1 B5:1 | C6:6 R:2 |
+           A5:2 C6:2 B5:2 A5:2 | G5:3 E5:1 C5:4 | D5:2 E5:2 F5:2 D5:2 | C5:6 R:2 |
+           A5:2 C6:2 F5:2 A5:2 | G5:2 E5:2 C5:2 E5:2 | F5:2 D5:2 A5:3 F5:1 | G5:6 R:2 |
+           A5:2 B5:1 C6:1 D6:2 C6:2 | E6:2 D6:2 C6:2 G5:2 | A5:2 G5:2 F5:2 D5:2 | C5:6 R:2`,
+    roots: 'C3 C3 F2 C3 A2 C3 G2 C3 F2 C3 D3 G2 F2 C3 G2 C3'},
+  battle: {tempo: 152, loop: true, style: 'drive', drums: 'khshkksh',
+    lead: `A4:1 C5:1 E5:1 A5:1 G5:2 E5:2 | F5:2 E5:1 D5:1 E5:4 | A4:1 C5:1 E5:1 A5:1 B5:2 C6:2 | B5:2 G5:2 E5:4 |
+           F5:2 A5:2 C6:2 A5:2 | G5:2 E5:2 C5:2 E5:2 | D5:2 F5:2 E5:2 D5:2 | E5:2 G#5:2 B5:4 |
+           C6:2 A5:2 F5:2 A5:2 | B5:2 G5:2 D5:2 G5:2 | G#5:2 B5:2 E6:2 D6:1 C6:1 | A5:6 R:2 |
+           F5:1 E5:1 D5:1 E5:1 F5:2 A5:2 | E5:1 D5:1 C5:1 D5:1 E5:2 A5:2 | F5:2 G5:2 A5:2 B5:2 | G#5:2 E5:2 B4:2 E5:2`,
+    roots: 'A2 D3 A2 E2 F2 C3 D3 E2 F2 G2 E2 A2 D3 A2 F2 E2'},
+  boss: {tempo: 168, loop: true, style: 'drive', drums: 'khskkhsh',
+    lead: `D5:1 D5:1 F5:1 A5:1 G#5:2 A5:2 | A#5:2 A5:2 G5:2 F5:2 | E5:1 E5:1 G5:1 A#5:1 A5:2 G5:2 | F5:2 E5:2 D5:4 |
+           D6:2 C6:1 A#5:1 A5:2 F5:2 | G5:2 F5:1 E5:1 F5:2 D5:2 | E5:2 F5:2 G5:2 A5:2 | C#6:2 A5:2 E5:2 C#5:2`,
+    harm: `A4:4 D5:4 | F5:4 D5:4 | C5:4 E5:4 | A4:4 F4:4 | F5:4 D5:4 | D5:4 A#4:4 | C#5:4 E5:4 | E5:4 A4:4`,
+    pad: 'Dm Bb C Dm Bb Gm A A', wave: 'sawtooth',
+    roots: 'D3 A#2 C3 D3 A#2 G2 A2 A2'},
+  fanfare: {tempo: 140, loop: false, style: 'none', drums: '',
+    lead: `G4:1 C5:1 E5:1 G5:2 R:1 E5:1 G5:1 | C6:4 B5:2 C6:2 | D6:2 C6:1 B5:1 A5:2 B5:2 | C6:8`,
+    bass: `C3:2 C3:1 C3:1 G2:2 G2:2 | A2:4 E2:4 | F2:4 G2:4 | C3:8`},
+  lose: {tempo: 84, loop: false, style: 'none', drums: '',
+    lead: `E5:2 D5:2 C5:2 B4:2 | A4:2 G#4:2 A4:4`,
+    bass: `A2:8 | E2:4 A2:4`},
+};
+// ステージごとに調とテンポを少しずつ変える
+SONGS.special2 = Object.assign({}, SONGS.special, {tempo: 176, organ: true, wave: 'square', drums: 'tcskkhsc'});
+// ステージごとの音色（同じ章でもステージが変わると音が変わる）
+const STAGE_WAVES = ['shakuhachi', 'koto', 'french_horn', 'trumpet'];   // ステージごとの主旋律の楽器
+// 章ごとの曲と調（同じ曲でも章・ステージで調と音色がかわる）
+const CH_SONG = ['wa2', 'wa3', 'wa1', 'wa1', 'wa3', 'wa2', 'wa1', 'wa3', 'wa2'];
+const CH_KEY  = [0, 0, 0, 3, -2, 5, -4, 2, -3];
+
+// ===== オーケストラ編成（曲ごとに どの楽器で鳴らすか）=====
+// 音源: FluidR3 GM（Frank Wen 作、MIT ライセンス／gleitz/midi-js-soundfonts 版）
+const ORCH = {
+  default: {lead: ['french_horn'], harm: ['string_ensemble_1'], pad: ['string_ensemble_1'], bass: ['contrabass']},
+  wamap:   {lead: ['shakuhachi'], harm: ['koto'], pad: ['string_ensemble_1'], bass: ['pizzicato_strings']},
+  wa1:     {lead: ['shakuhachi'], harm: ['koto'], pad: ['string_ensemble_1'], bass: ['contrabass']},
+  wa2:     {lead: ['shakuhachi'], harm: ['string_ensemble_1'], pad: ['string_ensemble_1'], bass: ['contrabass']},
+  wa3:     {lead: ['flute'], harm: ['koto'], pad: ['string_ensemble_1'], bass: ['cello']},
+  waboss:  {lead: ['french_horn', 'trumpet'], harm: ['string_ensemble_1'], pad: ['choir_aahs'], bass: ['contrabass', 'cello'], hits: true},
+  kisho:   {lead: ['trumpet', 'french_horn'], harm: ['string_ensemble_1'], pad: ['choir_aahs', 'string_ensemble_1'], bass: ['contrabass', 'cello'], hits: true},
+  maou1:   {lead: ['string_ensemble_1'], harm: ['choir_aahs'], pad: ['choir_aahs'], bass: ['cello']},
+  maou2:   {lead: ['french_horn', 'trumpet', 'string_ensemble_1'], harm: ['string_ensemble_1'], pad: ['choir_aahs'], bass: ['contrabass', 'cello'], hits: true},
+  rival:   {lead: ['shakuhachi', 'string_ensemble_1'], harm: ['koto'], pad: ['string_ensemble_1'], bass: ['contrabass']},
+  final:   {lead: ['french_horn'], harm: ['string_ensemble_1'], pad: ['choir_aahs'], bass: ['cello'], hits: true},
+  special: {lead: ['trumpet', 'french_horn'], harm: ['string_ensemble_1'], pad: ['choir_aahs'], bass: ['contrabass'], hits: true},
+  special2:{lead: ['trumpet', 'french_horn', 'string_ensemble_1'], harm: ['string_ensemble_1'], pad: ['choir_aahs'], bass: ['contrabass', 'cello'], hits: true},
+  fanfare: {lead: ['trumpet', 'french_horn'], bass: ['contrabass']},
+  allyjoin:{lead: ['trumpet', 'french_horn'], bass: ['contrabass']},
+  lose:    {lead: ['string_ensemble_1'], bass: ['cello']},
+  ending:  {lead: ['flute'], harm: ['string_ensemble_1'], pad: ['string_ensemble_1'], bass: ['cello']},
+};
+const INST = {};   // 楽器名 → {list:[{m, buf}], ready}
+function loadInst(name){
+  if (INST[name]) return INST[name].p;
+  const I = INST[name] = {list: [], ready: false};
+  I.p = fetch('sf/' + name + '.json').then(r => r.json()).then(async d => {
+    for (const [m, b] of Object.entries(d)) {
+      const bin = Uint8Array.from(atob(b), c => c.charCodeAt(0));
+      try { I.list.push({m: +m, buf: await AC.decodeAudioData(bin.buffer)}); } catch (e) {}
+    }
+    // 楽器ごとの録音の大きさのちがいを そろえるための倍率（効果音で使う）
+    let pk = 0; for (const x of I.list) { const d = x.buf.getChannelData(0); for (let i = 0; i < d.length; i += 7) pk = Math.max(pk, Math.abs(d[i])); }
+    I.norm = pk ? Math.min(8, .9 / pk) : 1;
+    I.ready = I.list.length > 0;
+  }).catch(() => {});
+  return I.p;
+}
+const BGM = (() => {
+  const midi = n => { const m = n.match(/^([A-G])(#|b)?(-?\d)$/); return 12 * (+m[3] + 1) + {C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); };
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const parse = str => str.replace(/\|/g, ' ').trim().split(/\s+/).map(t => { const [n, d] = t.split(':'); return [n === 'R' ? null : midi(n), +d || 1]; });
+  function build(song){
+    const ev = {}; let len = 0;
+    const put = (t, e) => (ev[t] = ev[t] || []).push(e);
+    let t = 0;
+    for (const [m, d] of parse(song.lead)) { if (m != null) put(t, {v: 'lead', m, d}); t += d; }
+    len = t;
+    if (song.bass) { let b = 0; for (const [m, d] of parse(song.bass)) { if (m != null) put(b, {v: 'bass', m, d}); b += d; } }
+    else if (song.roots) {
+      const pat = song.style === 'calm' ? [[0, 2], [7, 2], [12, 2], [7, 2]] : [[0, 1], [0, 1], [12, 1], [0, 1], [0, 1], [0, 1], [12, 1], [7, 1]];
+      song.roots.split(/\s+/).forEach((r, bar) => { let x = bar * 8; for (const [iv, d] of pat) { put(x, {v: 'bass', m: midi(r) + iv, d}); x += d; } });
+    }
+    if (song.harm) { let h = 0; for (const [m, d] of parse(song.harm)) { if (m != null) put(h, {v: 'harm', m, d}); h += d; } }
+    if (song.pad) song.pad.split(/\s+/).forEach((c, bar) => {
+      const m = c.match(/^([A-G][#b]?)(m?)$/); if (!m) return;
+      const r = midi(m[1] + '3'); put(bar * 8, {v: 'pad', ms: [r, r + (m[2] ? 3 : 4), r + 7, r + 12], d: 8});
+    });
+    if (song.drums) for (let x = 0; x < len; x++) { const c = song.drums[x % 8]; if (c !== '.') put(x, {v: c}); }
+    return {ev, len};
+  }
+  let master = null, cur = null, timer = null, noise = null, bus = null, verb = null, seBus = null;
+  const BGM_VOL = 2.1;
+  function ctx(){
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (!bus) {
+      // コンサートホールのような残響（作ったインパルス応答）＋ 音割れ防止のコンプレッサー
+      const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(AC.destination);
+      bus = AC.createGain(); bus.gain.value = 1; bus.connect(comp);
+      const len = AC.sampleRate * 2.6, ir = AC.createBuffer(2, len, AC.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+      verb = AC.createConvolver(); verb.buffer = ir;
+      const wet = AC.createGain(); wet.gain.value = .32; verb.connect(wet); wet.connect(comp);
+    }
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (!noise) { noise = AC.createBuffer(1, AC.sampleRate * .3, AC.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    return AC;
+  }
+  // 録音された楽器の音を、いちばん近い高さの音から ピッチを変えて鳴らす
+  function smp(name, m, t, dur, vol, out, o = {}){
+    const I = INST[name]; if (!I || !I.ready) return false;
+    let best = I.list[0]; for (const x of I.list) if (Math.abs(x.m - m) < Math.abs(best.m - m)) best = x;
+    const src = AC.createBufferSource(), g = AC.createGain(), rate = Math.pow(2, (m - best.m) / 12);
+    src.buffer = best.buf; src.playbackRate.value = rate;
+    const att = o.att ?? .015, rel = o.rel ?? .3;
+    if (o.norm) vol *= I.norm || 1;
+    const end = o.oneshot ? t + best.buf.duration / rate : t + Math.min(dur, best.buf.duration / rate);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att);
+    if (!o.oneshot) { g.gain.setValueAtTime(vol, Math.max(t + att, end - .03)); g.gain.linearRampToValueAtTime(0, end + rel); }
+    src.connect(g); g.connect(out); src.start(t); src.stop(end + rel + .05);
+    return true;
+  }
+  const ATT = {string_ensemble_1: .09, choir_aahs: .14, cello: .05, flute: .04, shakuhachi: .05};
+  function orchVoice(e, t, step, tr, out, O){
+    const dur = e.d * step;
+    if (e.v === 'lead' || e.v === 'harm' || e.v === 'bass') {
+      const insts = O[e.v] || []; if (!insts.length) return false;
+      const base = e.v === 'lead' ? .62 : e.v === 'harm' ? .34 : .55, vol = base / Math.sqrt(insts.length);
+      let ok = false;
+      insts.forEach((n, i) => { ok = smp(n, e.m + tr, t, dur * .98, vol, out, {att: ATT[n] ?? .02, rel: e.v === 'bass' ? .15 : .35}) || ok; });
+      return ok;
+    }
+    if (e.v === 'pad') {
+      const insts = O.pad || []; if (!insts.length) return false;
+      let ok = false;
+      insts.forEach(n => e.ms.forEach(m => { ok = smp(n, m + tr + (n === 'choir_aahs' ? 12 : 0), t, dur, .16 / insts.length, out, {att: ATT[n] ?? .12, rel: .6}) || ok; }));
+      return ok;
+    }
+    if (e.v === 'k') return smp('taiko_drum', 41, t, 1, .85, out, {oneshot: true});
+    if (e.v === 's') return smp('taiko_drum', 53, t, 1, .5, out, {oneshot: true});
+    if (e.v === 't') return smp('timpani', 43, t, 1, .8, out, {oneshot: true});
+    return false;
+  }
+  function voice(e, t, step, tr, out, wave, organ){
+    const ac = AC;
+    if (e.v === 'pad') {
+      // 和音（オルガンのように重ねる）
+      const dur = e.d * step, f = ac.createBiquadFilter(), g = ac.createGain();
+      f.type = 'lowpass'; f.frequency.value = organ ? 2200 : 1300;
+      const vol = organ ? .05 : .03;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + (organ ? .25 : .12));
+      g.gain.setValueAtTime(vol, t + dur * .85); g.gain.linearRampToValueAtTime(0, t + dur);
+      f.connect(g); g.connect(out);
+      for (const m of e.ms) for (const det of organ ? [-6, 6] : [0]) {
+        const o = ac.createOscillator(); o.type = organ ? 'sawtooth' : 'triangle'; o.frequency.value = hz(m + tr); o.detune.value = det;
+        o.connect(f); o.start(t); o.stop(t + dur);
+      }
+      return;
+    }
+    if (e.v === 'lead' || e.v === 'bass' || e.v === 'harm') {
+      const o = ac.createOscillator(), g = ac.createGain(), dur = e.d * step;
+      o.type = e.v === 'bass' ? 'triangle' : e.v === 'harm' ? 'triangle' : (wave || 'square');
+      o.frequency.value = hz(e.m + tr);
+      const vol = e.v === 'bass' ? .11 : e.v === 'harm' ? .04 : o.type === 'sawtooth' ? .035 : o.type === 'triangle' ? .09 : .05;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01);
+      g.gain.setValueAtTime(vol * .8, t + dur * .6); g.gain.linearRampToValueAtTime(0, t + dur * .95);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + dur);
+    } else if (e.v === 't') {
+      // ティンパニ
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(55, t + .4);
+      g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .55);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + .6);
+    } else if (e.v === 'c') {
+      // シンバル
+      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = noise; f.type = 'highpass'; f.frequency.value = 5000;
+      g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.001, t + .3);
+      src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + .3);
+    } else if (e.v === 'k') {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(40, t + .12);
+      g.gain.setValueAtTime(.22, t); g.gain.exponentialRampToValueAtTime(.001, t + .14);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + .15);
+    } else {
+      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), snare = e.v === 's';
+      src.buffer = noise; f.type = snare ? 'bandpass' : 'highpass'; f.frequency.value = snare ? 1800 : 7000;
+      const vol = snare ? .09 : .03, len = snare ? .12 : .04;
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + len);
+      src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + len);
+    }
+  }
+  function stop(){
+    token++;
+    if (timer) { clearInterval(timer); timer = null; }
+    if (master && AC) { const m = master; m.gain.setTargetAtTime(0, AC.currentTime, .08); setTimeout(() => m.disconnect(), 600); }
+    master = null; cur = null;
+  }
+  let want = null;   // 鳴らしたい曲（音が出せるようになるまで覚えておく）
+  let token = 0;
+  async function start(name, key){
+    stop();
+    if (!S.bgm || !AC || AC.state !== 'running') return;
+    ctx();
+    const my = ++token;
+    const song = SONGS[name], {ev, len} = build(song), [tr, dt, kw] = key || [0, 0];
+    const wave = song.wave;
+    const O = Object.assign({}, ORCH.default, ORCH[name] || {});
+    if (kw && kw.includes('_') || ['shakuhachi', 'koto', 'trumpet', 'flute'].includes(kw)) O.lead = [kw];   // ステージごとに主旋律の楽器をかえる
+    const need = [...new Set([].concat(O.lead || [], O.harm || [], O.pad || [], O.bass || [], ['taiko_drum', 'timpani'], O.hits ? ['orchestra_hit'] : []))];
+    // 楽器の音を読みこんでから 演奏をはじめる（4秒たっても来なければ 電子音で代わりに鳴らす）
+    await Promise.race([Promise.all(need.map(loadInst)), new Promise(r => setTimeout(r, 4000))]);
+    if (my !== token) return;
+    const step = 60 / (song.tempo + dt) / 2;
+    master = AC.createGain(); master.gain.value = BGM_VOL; master.connect(bus); master.connect(verb);
+    const out = master; let i = 0, next = AC.currentTime + .08;
+    cur = name + ':' + (key ? key.join(',') : '');
+    timer = setInterval(() => {
+      if (out !== master) return;
+      while (next < AC.currentTime + .15) {
+        if (i >= len) { if (!song.loop) { clearInterval(timer); timer = null; return; } i = 0; }
+        if (O.hits && i % 16 === 0) smp('orchestra_hit', 60 + tr, next, 1, .45, out, {oneshot: true});
+        for (const e of ev[i] || []) {
+          const etr = ['lead', 'bass', 'harm', 'pad'].includes(e.v) ? tr : 0;
+          if (!orchVoice(e, next, step, etr, out, O)) {
+            if (e.v === 'h') continue;   // オーケストラではハイハットは鳴らさない
+            voice(e, next, step, etr, out, wave, song.organ);
+          }
+        }
+        i++; next += step;
+      }
+    }, 30);
+  }
+  return {
+    play(name, key){
+      const id = name + ':' + (key ? key.join(',') : '');
+      want = [name, key];
+      if (cur === id && timer) return;
+      start(name, key);
+    },
+    // 最初のタップで音を出せるようにする（ブラウザの決まり）
+    unlock(){
+      try { ctx(); ['taiko_drum', 'orchestra_hit', 'timpani', 'trumpet', 'koto', 'french_horn', 'choir_aahs'].forEach(loadInst); if (AC.state !== 'running') AC.resume().then(() => want && !timer && start(...want)); else if (want && !timer && SONGS[want[0]].loop) start(...want); } catch (e) {}
+    },
+    stop, refresh(){ if (S.bgm && want) start(...want); else stop(); },
+    tap(){ return bus; },   // 音量のたしかめ用
+    ctx, smp(...a){ return smp(...a); },
+    // 効果音の出口（BGMのコンプレッサーを通さず、少しだけ残響をのせる）
+    seOut(){ ctx(); if (!seBus) { seBus = AC.createGain(); seBus.gain.value = 1; const lim = AC.createDynamicsCompressor(); lim.threshold.value = -4; lim.ratio.value = 12; lim.attack.value = .002; seBus.connect(lim); lim.connect(AC.destination); const w = AC.createGain(); w.gain.value = .25; seBus.connect(w); w.connect(verb); } return seBus; },
+    // 効果音が鳴る瞬間だけ BGM を小さくする
+    duck(){ if (!master || !AC) return; const g = master.gain, t = AC.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(BGM_VOL * .3, t + .02); g.setTargetAtTime(BGM_VOL, t + .5, .3); },
+    suspend(){ try { AC && AC.suspend(); } catch (e) {} },
+    resume(){ try { AC && AC.resume(); } catch (e) {} },
+  };
+})();
+document.addEventListener('pointerdown', () => BGM.unlock(), true);
+// 文字の選択・長押しメニュー・書くマスでのスクロールを止める（タッチペンで書くときのじゃまになるので）
+let PEN_USED = false;
+document.addEventListener('selectstart', e => e.preventDefault());
+document.addEventListener('contextmenu', e => { if (e.target.closest('.sheet, .arena, img')) e.preventDefault(); });
+for (const t of ['touchstart', 'touchmove']) document.addEventListener(t, e => { if (e.target.closest('.canvas-wrap')) e.preventDefault(); }, {passive: false});
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'pen') PEN_USED = true;
+  // ペンでマスの外の紙の部分をさわっても選択などが起きないように
+  if (e.pointerType === 'pen' && e.target.closest('.sheet') && !e.target.closest('button')) e.preventDefault();
+}, {passive: false});
+document.addEventListener('visibilitychange', () => document.hidden ? BGM.suspend() : BGM.resume());
+
+// ===== 絵（GPTで作ったドット絵）=====
+const heroTier = lv => HERO_TIERS.filter(t => lv >= t[0]).length;
+const heroSrc = (lv, p, job = jobId()) => job === 'hero' ? `assets/hero_t${heroTier(lv)}${p ? '_' + p : ''}.png` : `assets/job_${job}${p ? '_' + p : ''}.png`;
+const heroImg = (lv, job) => `<img class="px" src="${heroSrc(lv, '', job)}" alt="Lv${lv}の${JOBS[job || jobId()].name}">`;
+const monImg = (sid, i, name) => `<img class="px" src="assets/${sid}_${i + 1}.png" alt="${name}">`;
+// ===== 手書き漢字の判定（KanjiVGの書き順データと一画ずつ比べる）=====
+const RECOG = (() => {
+  const NP = 10;           // 1画あたりの点の数
+  const MISS = 0.42;       // 画が足りない・多いときのペナルティ
+  let TPL = null;          // 字 → 正規化ずみの画の配列
+
+  function resample(pts, n = NP){
+    const L = [0];
+    for (let i = 1; i < pts.length; i++) L.push(L[i-1] + Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]));
+    const tot = L[L.length-1];
+    if (!tot) return Array.from({length: n}, () => pts[0].slice());
+    const out = []; let j = 0;
+    for (let k = 0; k < n; k++) {
+      const t = tot * k / (n - 1);
+      while (j < L.length - 2 && L[j+1] < t) j++;
+      const f = (t - L[j]) / ((L[j+1] - L[j]) || 1), a = pts[j], b = pts[j+1] || a;
+      out.push([a[0] + (b[0]-a[0]) * f, a[1] + (b[1]-a[1]) * f]);
+    }
+    return out;
+  }
+  // 字全体の外わくで 0〜1 にそろえる（縦横比は保つ）
+  function normalize(strokes){
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const s of strokes) for (const [x, y] of s) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    const sc = Math.max(x1 - x0, y1 - y0, 1e-6), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    return strokes.map(s => s.map(([x, y]) => [(x - cx) / sc, (y - cy) / sc]));
+  }
+  function strokeDist(a, b){
+    let f = 0, r = 0;
+    for (let i = 0; i < NP; i++) {
+      f += Math.hypot(a[i][0]-b[i][0], a[i][1]-b[i][1]);
+      r += Math.hypot(a[i][0]-b[NP-1-i][0], a[i][1]-b[NP-1-i][1]);
+    }
+    return Math.min(f, r * 1.3) / NP;  // 逆向きに書いた画は少しだけ減点
+  }
+  // ハンガリー法（正方行列の最小コスト割り当て）
+  function hungarian(C){
+    const n = C.length, u = new Array(n+1).fill(0), v = new Array(n+1).fill(0), p = new Array(n+1).fill(0), way = new Array(n+1).fill(0);
+    for (let i = 1; i <= n; i++) {
+      p[0] = i; let j0 = 0; const minv = new Array(n+1).fill(Infinity), used = new Array(n+1).fill(false);
+      do {
+        used[j0] = true; const i0 = p[j0]; let delta = Infinity, j1 = 0;
+        for (let j = 1; j <= n; j++) if (!used[j]) {
+          const cur = C[i0-1][j-1] - u[i0] - v[j];
+          if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+          if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+        }
+        for (let j = 0; j <= n; j++) { if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta; }
+        j0 = j1;
+      } while (p[j0] !== 0);
+      do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+    }
+    let cost = 0; for (let j = 1; j <= n; j++) cost += C[p[j]-1][j-1];
+    return cost;
+  }
+  function charCost(inp, tpl){
+    const n = Math.max(inp.length, tpl.length), C = [];
+    for (let i = 0; i < n; i++) {
+      const row = [];
+      for (let j = 0; j < n; j++) row.push(i < inp.length && j < tpl.length ? strokeDist(inp[i], tpl[j]) : MISS);
+      C.push(row);
+    }
+    return hungarian(C) / n;
+  }
+  return {
+    load(data){
+      TPL = {};
+      for (const [ch, ss] of Object.entries(data)) {
+        const strokes = ss.map(flat => { const pts = []; for (let i = 0; i < flat.length; i += 2) pts.push([flat[i], flat[i+1]]); return resample(pts); });
+        TPL[ch] = normalize(strokes);
+      }
+    },
+    ready: () => !!TPL,
+    has: ch => !!(TPL && TPL[ch]),
+    // strokes: [[ [x,y], ... ], ...]（画面の座標のままでよい）
+    // 返り値: {ok, best, cost, targetCost}
+    judge(rawStrokes, target, extra = []){
+      if (!TPL || !TPL[target]) return null;
+      if (!rawStrokes.length) return {ok: false, best: null, empty: true};
+      const inp = normalize(rawStrokes.map(s => resample(s.length > 1 ? s : [s[0], [s[0][0] + .01, s[0][1]]])));
+      const tCost = charCost(inp, TPL[target]);
+      let best = target, bestCost = tCost;
+      const nIn = inp.length;
+      for (const [ch, tpl] of Object.entries(TPL)) {
+        if (ch === target || Math.abs(tpl.length - nIn) > 3) continue;
+        const c = charCost(inp, tpl);
+        if (c < bestCost) { bestCost = c; best = ch; }
+      }
+      const ok = best === target && tCost < 0.22;
+      return {ok, best, cost: bestCost, targetCost: tCost, nIn, nTpl: TPL[target].length};
+    },
+    _tpl: () => TPL,
+  };
+})();
+fetch('strokes.json').then(r => r.json()).then(d => { window.STROKES = d; RECOG.load(d); }).catch(() => {});
+// 書き順データの出典: KanjiVG (Ulrich Apel, CC BY-SA 3.0) https://kanjivg.tagaini.net/
+
+// ===== ユーティリティ =====
+const $ = s => document.querySelector(s);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[Math.random() * a.length | 0];
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ===== よみのまちがい選択肢 =====
+const DAKU = {か:'が',き:'ぎ',く:'ぐ',け:'げ',こ:'ご',さ:'ざ',し:'じ',す:'ず',せ:'ぜ',そ:'ぞ',た:'だ',ち:'ぢ',つ:'づ',て:'で',と:'ど',は:'ば',ひ:'び',ふ:'ぶ',へ:'べ',ほ:'ぼ'};
+Object.entries(DAKU).forEach(([a, b]) => DAKU[b] = a);
+DAKU['ぢ'] = 'じ'; DAKU['づ'] = 'ず';
+const O_ROW = 'こそとのほもよろごぞどぼぽょゅ';
+const SOKUON_NEXT = 'かきくけこさしすせそたちつてとぱぴぷぺぽ';
+function mutate(r){
+  const c = [...r], out = new Set();
+  c.forEach((ch, i) => { if (DAKU[ch]) { const x = c.slice(); x[i] = DAKU[ch]; out.add(x.join('')); } });
+  c.forEach((ch, i) => {
+    if (ch === 'う' && i > 0 && O_ROW.includes(c[i-1])) { const x = c.slice(); x.splice(i, 1); out.add(x.join('')); }
+    if (O_ROW.includes(ch) && c[i+1] !== 'う') { const x = c.slice(); x.splice(i + 1, 0, 'う'); out.add(x.join('')); }
+    if (ch === 'っ') { const x = c.slice(); x[i] = 'つ'; out.add(x.join('')); const y = c.slice(); y.splice(i, 1); out.add(y.join('')); }
+    if (i > 0 && SOKUON_NEXT.includes(ch) && c[i-1] !== 'っ' && c[i-1] !== 'ん') { const x = c.slice(); x.splice(i, 0, 'っ'); out.add(x.join('')); }
+    if (ch === 'ゅ') { const x = c.slice(); x[i] = 'ょ'; out.add(x.join('')); }
+    if (ch === 'ょ') { const x = c.slice(); x[i] = 'ゅ'; out.add(x.join('')); }
+    if (ch === 'ん' && i < c.length - 1) { const x = c.slice(); x.splice(i, 1); out.add(x.join('')); }
+  });
+  out.delete(r); return [...out];
+}
+function yomiChoices(it, n = 4){
+  const set = new Set(), k = n - 1;
+  // 同じ漢字の別の読みがあれば優先（例：収 → おさ／しゅう）
+  const others = ALL.filter(o => o.target !== it.target && [...it.target].some(ch => o.target.includes(ch)) && o.yomi !== it.yomi && Math.abs(o.yomi.length - it.yomi.length) <= 2);
+  const mut = shuffle(mutate(it.yomi));
+  if (others.length) set.add(pick(others).yomi);
+  for (const m of mut) { if (set.size >= k) break; set.add(m); }
+  const sameLen = shuffle(ALL.filter(o => o.yomi !== it.yomi && Math.abs(o.yomi.length - it.yomi.length) <= 1));
+  for (const o of sameLen) { if (set.size >= k + 1) break; set.add(o.yomi); }
+  set.delete(it.yomi);
+  return shuffle([it.yomi, ...[...set].slice(0, k)]);
+}
+function kakiChoices(it, n = 4){
+  const t = [...it.target], set = new Set(), k = n - 1;
+  const cand = [];
+  t.forEach((ch, i) => (LOOKMAP[ch] || []).forEach(alt => { const x = t.slice(); x[i] = alt; cand.push(x.join('')); }));
+  for (const m of shuffle(cand)) { if (set.size >= k) break; set.add(m); }
+  let guard = 0;
+  while (set.size < k + 1 && guard++ < 80) {
+    const x = t.slice(); const i = Math.random() * t.length | 0;
+    if (!/[\u4e00-\u9fff]/.test(x[i])) continue;
+    x[i] = pick(KANJI_POOL); const s = x.join(''); if (s !== it.target) set.add(s);
+  }
+  set.delete(it.target);
+  return shuffle([it.target, ...[...set].slice(0, k)]);
+}
+
+// ===== 画面：マップ =====
+function renderMap(){
+  B = null;
+  BGM.play('wamap');
+  const need = needExp(S.lv), weakN = Object.keys(S.weak).length;
+  $('#app').innerHTML = `
+  <header style="display:flex;flex-direction:column;gap:4px">
+    <h1>漢字鬼斬り帖</h1>
+    <p class="sub">「よみ」「かき」「部首」に正解するたびに 剣士の刀が鬼を斬る！ 漢字の力で 鬼の王をたおせ。</p>
+  </header>
+  <section class="herocard">
+    <div>${heroImg(S.lv)}</div>
+    <div class="stat">
+      <div class="lv">Lv ${S.lv}</div>
+      <div class="title"><span class="jobtag">${JOB().name}</span>${titleOf(S.lv)}${S.ending ? '<span class="badge">真の漢字剣士</span>' : ''}${(S.special || {}).best >= 10 ? '<span class="badge">大魔神をこえし者</span>' : ''}</div>
+      <div class="bar exp" aria-label="けいけんち"><i style="width:${Math.min(100, S.exp / need * 100)}%"></i></div>
+      <div class="small-num">EXP ${S.exp} / ${need}　こうげき ${atkOf(S.lv)}　HP ${maxHpOf(S.lv)}　MP ${maxMpOf(S.lv)}　正解 ${S.total}問</div>
+      <div class="skills">${SKILLS.map(k => S.lv >= k.lv ? `<span class="skill" title="${k.desc}">${k.name}</span>` : '').join('')}
+        ${(() => { const nx = SKILLS.find(k => S.lv < k.lv); const nt = HERO_TIERS.find(t => S.lv < t[0]);
+          return `<span class="next">${nx ? `Lv${nx.lv}で わざ「${nx.name}」` : ''}${nx && nt ? '／' : ''}${nt ? `Lv${nt[0]}で そうびが かわる` : ''}</span>`; })()}</div>
+    </div>
+  </section>
+  ${trainPanel()}
+  ${corpsPanel()}
+  ${dailyPanel()}
+  ${jobPanel()}
+  ${(() => { const sp = S.special || {}, lv = sp.lv || 1;
+    return `<section class="panel sppanel">
+      <h2>スペシャルステージ</h2>
+      <button class="stage spstage" data-s="sp">
+        <img class="px" src="assets/${SP_LEVELS[lv].form}.png" alt="" style="${sp.met ? '' : 'filter:brightness(0) drop-shadow(0 0 6px #c040ff)'}">
+        <div style="min-width:0"><div class="nm">見なおしシート「十月までの漢字のまとめ」</div>
+        <div class="meta">テストの50問だけが出る・何度でもちょうせんできる<br>隠しボス：${sp.met ? `<b style="color:#ff8a8a">${SP_LEVELS[lv].name} Lv${lv}</b>` : '？？？'}${sp.best ? `　さいこう Lv${sp.best} げきは` : ''}</div>
+        <div class="splv">${Array.from({length: SP_MAX}, (_, i) => `<i class="${i < (sp.best || 0) ? 'won' : i === lv - 1 && sp.met ? 'now' : ''}">${i + 1}</i>`).join('')}</div></div>
+      </button></section>`; })()}
+  <section class="panel">
+    <h2>もんだいの種類</h2>
+    <div class="seg" id="modeSeg">
+      <button data-v="yomi" aria-pressed="${S.mode==='yomi'}">よみ</button>
+      <button data-v="kaki" aria-pressed="${S.mode==='kaki'}">かき</button>
+      <button data-v="bushu" aria-pressed="${S.mode==='bushu'}">部首</button>
+      <button data-v="mix" aria-pressed="${S.mode==='mix'}">まぜる（かき多め）</button>
+    </div>
+    <h2>「かき」のこたえ方</h2>
+    <div class="seg" id="kakiSeg">
+      <button data-v="choice" aria-pressed="${S.kaki==='choice'}">4つからえらぶ</button>
+      <button data-v="hand" aria-pressed="${S.kaki==='hand'}">手で書く（自動で丸つけ）</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>ステージ</h2>
+    ${CHAPTERS.map(ch => {
+      const done = ch.stages.filter(st => S.cleared[st.id]).length;
+      return `<div class="chapter">
+        ${(() => { const its = ITEMS[ch.id], m3 = its.filter(a => starOf(a.id) >= 3).length, allStar = ch.stages.every(st => (S.stars || {})[st.id] === 3);
+          return `<div class="chname ${allStar ? 'gold' : ''}"><span>第${ch.stages[0].ci + 1}章　${ch.name}${allStar ? ' 👑' : ''}</span><span class="chprog">覚えた ${m3}/${its.length}・${done}/${ch.stages.length}</span></div>
+          <div class="mbar"><i style="width:${m3 / its.length * 100}%"></i></div>`; })()}
+        <div class="stages">${ch.stages.map((st, si) => {
+          const locked = si > 0 && !S.cleared[ch.stages[si - 1].id];
+          const boss = st.mons[st.mons.length - 1];
+          return `<button class="stage ${locked ? 'locked' : ''}" data-s="${st.id}" ${locked ? 'disabled' : ''}>
+            <img class="px" src="assets/${st.art}_${st.mons.length}.png" alt="${locked ? '？？？' : boss[0]}">
+            <div style="min-width:0"><div class="nm">${st.ci + 1}-${si + 1}　${st.area}</div>
+            <div class="meta">${locked ? '前のステージをクリアすると行ける' : `${st.items.length}問・ボス ${boss[0]}`}
+            ${RIVAL_EVENTS[st.id] && !locked && !(S.rival || {})[st.id] ? '<span class="rivaltag">ライバルの気配…</span>' : ''}
+            ${S.cleared[st.id] ? `<span class="clear stars">${'★'.repeat((S.stars || {})[st.id] || 1)}${'☆'.repeat(3 - ((S.stars || {})[st.id] || 1))}</span>` : ''}</div></div></button>`;
+        }).join('')}</div></div>`;
+    }).join('')}
+    ${(() => { const lockedF = !S.cleared['s9-2'];
+      return `<div class="chapter final"><div class="chname"><span>終章　仮面の剣士</span><span class="chprog">${S.cleared.final ? 1 : 0}/1</span></div>
+        <div class="stages"><button class="stage ${lockedF ? 'locked' : ''} finalstage" data-s="final" ${lockedF ? 'disabled' : ''}>
+          <img class="px" src="assets/${S.ending ? 'rival' : 'rival_m'}.png" alt="${lockedF ? '？？？' : '仮面の剣士'}">
+          <div style="min-width:0"><div class="nm">終　満月の天守閣</div>
+          <div class="meta">${lockedF ? '9-2「氷の宮殿」をクリアすると行ける' : 'ぜんぶの漢字から出題・ラスボス 仮面の剣士'}
+          ${S.cleared.final ? `<span class="clear">★クリア${S.cleared.final > 1 ? '×' + S.cleared.final : ''}</span>` : ''}</div></div></button></div></div>`; })()}
+    ${(() => { const locked2 = !S.cleared.final;
+      return `<div class="chapter final"><div class="chname"><span>終章・弐　鬼の王</span><span class="chprog">${S.cleared.final2 ? 1 : 0}/1</span></div>
+        <div class="stages"><button class="stage ${locked2 ? 'locked' : ''} finalstage" data-s="final2" ${locked2 ? 'disabled' : ''}>
+          <img class="px" src="assets/${S.ending ? 'maou_d' : 'maou_h'}.png" alt="${locked2 ? '？？？' : '鬼の王・黒帝'}">
+          <div style="min-width:0"><div class="nm">終　鬼の王の御殿</div>
+          <div class="meta">${locked2 ? '終章で 仮面の剣士をたおすと 行ける' : 'ぜんぶの漢字から出題・ラスボス 鬼の王・黒帝'}
+          ${S.cleared.final2 ? `<span class="clear">★クリア${S.cleared.final2 > 1 ? '×' + S.cleared.final2 : ''}</span>` : ''}</div></div></button></div></div>`; })()}
+    <div class="stages">
+      <button class="stage weak" data-s="weak" ${weakN ? '' : 'disabled style="opacity:.5"'}><img class="px" src="assets/weak_3.png" alt="にがての魔王">
+        <div style="min-width:0"><div class="nm">にがて復習</div><div class="meta">まちがえた問題 ${weakN}問</div></div></button>
+    </div>
+    <div class="row" style="justify-content:flex-start">
+      <button class="btn small" id="weakList" ${weakN ? '' : 'disabled'}>にがてリストを見る</button>
+      <button class="btn small" id="sound">おと：${S.sound ? 'ON' : 'OFF'}</button>
+      <button class="btn small" id="bgm">BGM：${S.bgm ? 'ON' : 'OFF'}</button>
+      <button class="btn small" id="reset">さいしょから</button>
+    </div>
+  </section>
+  <p class="sub" style="font-size:12px">手書きの丸つけには書き順データ <a href="https://kanjivg.tagaini.net/" style="color:var(--muted)">KanjiVG</a>（Ulrich Apel, CC BY-SA 3.0）を、BGMの楽器の音に FluidR3 GM（Frank Wen）を使っています。</p>`;
+  document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => { S.mode = b.dataset.v; save(); renderMap(); });
+  document.querySelectorAll('#kakiSeg button').forEach(b => b.onclick = () => { S.kaki = b.dataset.v; save(); renderMap(); });
+  document.querySelectorAll('.stage').forEach(b => b.onclick = () => { SE.tap(); b.dataset.s === 'sp' ? startSpecial() : startStage(b.dataset.s); });
+  $('#sound').onclick = () => { S.sound = !S.sound; save(); renderMap(); };
+  $('#bgm').onclick = () => { S.bgm = !S.bgm; save(); BGM.unlock(); BGM.refresh(); renderMap(); };
+  $('#weakList').onclick = showWeakList;
+  $('#reset').onclick = () => overlay(`<h3>さいしょから？</h3><p>レベルと記録が全部消えます。</p>
+    <div class="row"><button class="btn" data-close>やめる</button><button class="btn gold" id="doReset">消す</button></div>`, () => {
+      $('#doReset').onclick = () => { S = Object.assign(JSON.parse(JSON.stringify(DEF)), {sound:S.sound, bgm:S.bgm}); save(); closeOv(); renderMap(); };
+    });
+  bindDaily();
+  bindJobs();
+  bindTrain();
+  window.scrollTo(0, 0);
+  setTimeout(checkLogin, 400);
+}
+function showWeakList(){
+  const list = Object.entries(S.weak).map(([id, n]) => [ALL.find(a => a.id === id), n]).filter(x => x[0]).sort((a, b) => b[1] - a[1]);
+  overlay(`<h3>にがてリスト</h3><div class="weaklist">${list.map(([it, n]) => `<div>${esc(it.pre)}<b>${esc(it.target)}</b>（${esc(it.yomi)}）${esc(it.post)}<span>×${n}</span></div>`).join('')}</div><button class="btn gold" data-close>とじる</button>`);
+}
+
+// ===== まいにちのぼうけん（ログインボーナス・デイリークエスト・アイテム・カレンダー）=====
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const today = () => ymd(new Date());
+const dayDiff = (a, b) => Math.round((new Date(b + 'T00:00') - new Date(a + 'T00:00')) / 86400000);
+const ITEMS_INFO = {
+  potion: {name: 'きずぐすり', desc: 'バトル中にHPが全回復する', icon: '<svg viewBox="0 0 16 16"><path d="M6 1h4v3l3 4v6H3V8l3-4z" fill="#e5484d" stroke="#000"/><path d="M4 9h8v4H4z" fill="#ff8a8a"/><rect x="6" y="1" width="4" height="2" fill="#c8a060"/></svg>'},
+  seed: {name: '力のおにぎり', desc: 'そのステージの間 こうげき1.5ばい', icon: '<svg viewBox="0 0 16 16"><ellipse cx="8" cy="9" rx="5" ry="6" fill="#c08a3a" stroke="#000"/><path d="M8 3c2-3 5-2 5-2s-1 3-5 3" fill="#5bd17a" stroke="#000"/><path d="M6 8l1 3M9 7l1 4" stroke="#6a4a1a"/></svg>'},
+};
+// 7日でひとまわりするログインボーナス
+const LOGIN_REWARDS = [
+  {exp: 50, label: 'EXP 50'}, {potion: 1, label: 'きずぐすり'}, {exp: 100, label: 'EXP 100'}, {seed: 1, label: '力のおにぎり'},
+  {exp: 150, label: 'EXP 150'}, {potion: 2, label: 'きずぐすり×2'}, {exp: 300, potion: 1, seed: 1, label: '金の宝箱', big: true},
+];
+// デイリークエストのたね（毎日この中から3つ）
+const QUEST_POOL = [
+  {id: 'kaki10', text: 'かき問題を10問 正解する', ev: 'kaki', goal: 10, reward: {exp: 80}, kaki: true},
+  {id: 'hand5', text: '手書きで5問 正解する', ev: 'hand', goal: 5, reward: {potion: 1}, kaki: true},
+  {id: 'kaki15', text: 'かき問題を15問 正解する', ev: 'kaki', goal: 15, reward: {seed: 1}, kaki: true},
+  {id: 'yomi8', text: 'よみ問題を8問 正解する', ev: 'yomi', goal: 8, reward: {exp: 60}},
+  {id: 'boss1', text: 'ボスを1体 たおす', ev: 'boss', goal: 1, reward: {seed: 1}},
+  {id: 'clear1', text: 'ステージを1つ クリアする', ev: 'clear', goal: 1, reward: {exp: 100}},
+  {id: 'streak5', text: '5問れんぞくで 正解する', ev: 'streak', goal: 5, reward: {exp: 80}},
+  {id: 'correct20', text: 'あわせて20問 正解する', ev: 'correct', goal: 20, reward: {exp: 120}},
+  {id: 'kill5', text: '鬼を5体 たおす', ev: 'kill', goal: 5, reward: {potion: 1}},
+  {id: 'bushu6', text: '部首の問題を6問 正解する', ev: 'bushu', goal: 6, reward: {exp: 90}},
+  {id: 'weak3', text: 'にがて問題を3問 正解する', ev: 'weak', goal: 3, reward: {exp: 100}, needWeak: true},
+];
+const ALL_CLEAR_REWARD = {exp: 150, potion: 1, label: 'ボーナス宝箱'};
+const rewardText = r => [r.exp ? `EXP ${r.exp}` : '', r.potion ? `きずぐすり${r.potion > 1 ? '×' + r.potion : ''}` : '', r.seed ? `力のおにぎり${r.seed > 1 ? '×' + r.seed : ''}` : ''].filter(Boolean).join('＋');
+function seededRand(str){ let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296; }
+function ensureDaily(){
+  const d = today();
+  if (S.daily && S.daily.date === d) return;
+  const rnd = seededRand(d), hasWeak = Object.keys(S.weak).length >= 3;
+  const pool = QUEST_POOL.filter(q => !q.needWeak || hasWeak);
+  const kakiQ = pool.filter(q => q.kaki), other = pool.filter(q => !q.kaki);
+  const pick = arr => arr.splice(Math.floor(rnd() * arr.length), 1)[0];
+  const qs = [pick(kakiQ), pick(other), pick(other)];   // かきのクエストは毎日かならず1つ
+  S.daily = {date: d, quests: qs.map(q => ({id: q.id, prog: 0, claimed: false})), bonus: false};
+  save();
+}
+const questDef = id => QUEST_POOL.find(q => q.id === id);
+// ゲームの中のできごとをクエストに数える
+function track(ev, n = 1){
+  ensureDaily();
+  for (const q of S.daily.quests) {
+    const def = questDef(q.id); if (def.ev !== ev || q.prog >= def.goal) continue;
+    q.prog = ev === 'streak' ? Math.max(q.prog, n) : q.prog + n;
+    if (q.prog >= def.goal) { q.prog = def.goal; toast(`クエスト達成！「${def.text}」<br><small>マップで ほうびを受け取ろう</small>`); tone([[784,.08],[1047,.08],[1319,.2]], 'triangle', .06); }
+  }
+  save();
+}
+function grant(r){
+  S.items.potion += r.potion || 0; S.items.seed += r.seed || 0;
+  const ups = r.exp ? addExp(r.exp) : [];
+  save(); return ups;
+}
+function toast(html){
+  let box = $('#toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
+  const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
+  box.appendChild(t); setTimeout(() => t.classList.add('out'), 2600); setTimeout(() => t.remove(), 3200);
+}
+function stampToday(){ const d = today(); S.stamps[d] = (S.stamps[d] || 0) + 1; }
+function studyStreak(){
+  let n = 0; const d = new Date();
+  if (!S.stamps[ymd(d)]) d.setDate(d.getDate() - 1);   // 今日まだなら、きのうまでの連続を数える
+  while (S.stamps[ymd(d)]) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+// ログインボーナス（その日はじめてマップを開いたとき）
+function checkLogin(){
+  const d = today();
+  if (S.login.last === d || $('#ov') || B) return;   // バトル中は出さない
+  const diff = S.login.last ? dayDiff(S.login.last, d) : 99;
+  const streak = diff === 1 ? S.login.streak + 1 : 1;
+  const idx = (streak - 1) % 7, r = LOGIN_REWARDS[idx];
+  overlay(`<h3>ログインボーナス</h3>
+    <p>${streak > 1 ? `<b style="color:var(--gold)">${streak}日れんぞく</b> ログイン！` : 'きょうも来てくれてありがとう！'}${diff > 1 && S.login.last ? '<br><small style="color:var(--muted)">（1日あいたので 1日目から）</small>' : ''}</p>
+    <div class="lb">${LOGIN_REWARDS.map((x, i) => `<div class="lbday ${i < idx ? 'got' : i === idx ? 'now' : ''} ${x.big ? 'big' : ''}"><span>${i + 1}日目</span>${x.big ? '<div class="chest"></div>' : x.potion && !x.exp ? `<i class="ico">${ITEMS_INFO.potion.icon}</i>` : x.seed && !x.exp ? `<i class="ico">${ITEMS_INFO.seed.icon}</i>` : '<b>EXP</b>'}<small>${x.label}</small></div>`).join('')}</div>
+    <p>きょうのほうび：<b style="color:var(--gold)">${r.big ? '金の宝箱（' + rewardText(r) + '）' : rewardText(r)}</b></p>
+    <button class="btn gold" id="lbOk">受け取る</button>`, () => {
+    $('#lbOk').onclick = () => {
+      S.login = {last: d, streak, days: (S.login.days || 0) + 1};
+      SE.win(); const ups = grant(r); closeOv();
+      if (ups.length) showLevelUp(ups, renderMap); else renderMap();
+    };
+  });
+}
+function dailyPanel(){
+  ensureDaily();
+  const qs = S.daily.quests, allDone = qs.every(q => q.claimed);
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+  const cells = []; for (let i = 0; i < first; i++) cells.push('<i></i>');
+  for (let k = 1; k <= days; k++) { const key = ymd(new Date(y, m, k)); cells.push(`<i class="${S.stamps[key] ? 'st' : ''} ${k === d.getDate() ? 'td' : ''}">${S.stamps[key] ? '' : k}</i>`); }
+  return `<section class="panel daily">
+    <h2>きょうのぼうけん</h2>
+    <div class="dq">${qs.map((q, i) => { const def = questDef(q.id), done = q.prog >= def.goal;
+      return `<div class="quest ${q.claimed ? 'claimed' : done ? 'done' : ''}">
+        <div class="qt"><span>${def.text}</span><span class="qr">${rewardText(def.reward)}</span></div>
+        <div class="qrow"><div class="bar"><i style="width:${q.prog / def.goal * 100}%"></i></div><span class="small-num">${q.prog}/${def.goal}</span>
+        ${q.claimed ? '<span class="qok">受け取りずみ</span>' : done ? `<button class="btn small gold qclaim" data-i="${i}">受け取る</button>` : ''}</div></div>`; }).join('')}
+      <div class="quest bonus ${S.daily.bonus ? 'claimed' : ''}"><div class="qt"><span>3つぜんぶ達成で ${ALL_CLEAR_REWARD.label}</span><span class="qr">${rewardText(ALL_CLEAR_REWARD)}</span></div>
+        <div class="qrow">${S.daily.bonus ? '<span class="qok">受け取りずみ</span>' : allDone ? '<button class="btn small gold" id="bonusClaim">宝箱をあける</button>' : `<span class="small-num">${qs.filter(q => q.claimed).length}/3</span>`}</div></div>
+    </div>
+    <div class="dinfo">
+      <div class="itemsrow">もちもの：${Object.entries(ITEMS_INFO).map(([k, v]) => `<span class="itm" title="${v.desc}"><i class="ico">${v.icon}</i>${v.name}×${S.items[k]}</span>`).join('')}</div>
+      <div class="small-num">ログイン ${S.login.streak || 0}日れんぞく・べんきょう ${studyStreak()}日れんぞく</div>
+    </div>
+    <div class="cal"><div class="calh">${m + 1}月のがんばりカレンダー</div><div class="calg">${['日','月','火','水','木','金','土'].map(w => `<b>${w}</b>`).join('')}${cells.join('')}</div></div>
+  </section>`;
+}
+function bindDaily(){
+  document.querySelectorAll('.qclaim').forEach(b => b.onclick = () => {
+    const q = S.daily.quests[+b.dataset.i]; if (q.claimed) return;
+    q.claimed = true; SE.win(); const ups = grant(questDef(q.id).reward);
+    toast(`ほうび：${rewardText(questDef(q.id).reward)}`);
+    ups.length ? showLevelUp(ups, renderMap) : renderMap();
+  });
+  const bc = $('#bonusClaim');
+  if (bc) bc.onclick = () => {
+    S.daily.bonus = true; tone([[523,.1],[659,.1],[784,.1],[1047,.1],[1319,.35]], 'triangle', .08);
+    const ups = grant(ALL_CLEAR_REWARD);
+    overlay(`<div class="chest open"></div><h3>ボーナス宝箱！</h3><p>${rewardText(ALL_CLEAR_REWARD)} を手に入れた！<br>あしたも ぼうけんに来てね</p><button class="btn gold" id="bxOk">やったー！</button>`, () => {
+      $('#bxOk').onclick = () => { closeOv(); ups.length ? showLevelUp(ups, renderMap) : renderMap(); };
+    });
+  };
+}
+// バトル中のアイテム
+function itemBar(){
+  return `<div class="itembar" id="itembar">${Object.entries(ITEMS_INFO).map(([k, v]) =>
+    `<button class="btn small itembtn" data-k="${k}" ${S.items[k] ? '' : 'disabled'} title="${v.desc}"><i class="ico">${v.icon}</i>${v.name} ×${S.items[k]}</button>`).join('')}
+    ${B.power > 1 ? '<span class="buff">こうげき1.5ばい中</span>' : ''}${skillBtn()}</div>`;
+}
+function bindItems(){
+  const sb = $('#skillBtn'); if (sb) sb.onclick = castSkill;
+  document.querySelectorAll('.itembtn').forEach(b => b.onclick = () => {
+    const k = b.dataset.k; if (!S.items[k] || B.busy) return;
+    if (k === 'potion') { if (B.heroHp >= maxHpOf(S.lv)) return toast('HPはまんたんだよ'); B.heroHp = maxHpOf(S.lv); updateHeroHp(); $('#msg').textContent = 'きずぐすりをつかった！ HPが全回復した！'; tone([[660,.08],[880,.08],[1175,.2]], 'triangle', .07); }
+    if (k === 'seed') { if (B.power > 1) return toast('もう こうげき1.5ばい中だよ'); B.power = 1.5; $('#msg').textContent = '力のおにぎりを食べた！ こうげき力が1.5ばいになった！'; tone([[392,.08],[523,.08],[784,.2]], 'square', .06); }
+    S.items[k]--; save();
+    $('#itembar').outerHTML = itemBar(); bindItems();
+  });
+}
+
+// ===== 転職の神殿 =====
+function jobPanel(){
+  const open = Object.values(JOBS).some(j => j.lv > 1 && S.lv >= j.lv);
+  return `<section class="panel jobpanel">
+    <h2>転職の神殿</h2>
+    ${open ? '' : '<p class="small-num">Lv10になると 新しい職業に転職できるようになる</p>'}
+    <div class="jobs">${Object.entries(JOBS).map(([id, j]) => {
+      const locked = S.lv < j.lv, cur = id === jobId();
+      return `<button class="jobcard ${cur ? 'cur' : ''} ${locked ? 'locked' : ''}" data-job="${id}" ${locked || cur ? 'disabled' : ''}>
+        <img class="px" src="${heroSrc(S.lv, '', id)}" alt="">
+        <div style="min-width:0"><div class="nm">${j.name}${cur ? '<span class="nowjob">いまの職業</span>' : ''}</div>
+        <div class="meta">${locked ? `Lv${j.lv}で 転職できる` : j.desc}</div>
+        ${locked ? '' : `<div class="meta">こうげき${stars(j.atk)} HP${stars(j.hp)} MP${stars(j.mp)}</div>
+        <div class="meta sk">特技「${j.skill.name}」MP${j.skill.mp}：${j.skill.desc}</div>`}</div></button>`;
+    }).join('')}</div></section>`;
+}
+const stars = v => '★'.repeat(Math.max(1, Math.round(v * 3 - 1))).padEnd(4, '☆');
+function bindJobs(){
+  document.querySelectorAll('.jobcard').forEach(b => b.onclick = () => {
+    const id = b.dataset.job, j = JOBS[id]; if (S.lv < j.lv || id === jobId()) return;
+    const oldId = jobId();
+    overlay(`<div class="lvpair"><div>${heroImg(S.lv, oldId)}</div><div class="arrow">▶</div><div>${heroImg(S.lv, id)}</div></div>
+      <h3>${j.name}に 転職する？</h3>
+      <p>${j.desc}<br>特技「<b style="color:var(--gold)">${j.skill.name}</b>」（MP${j.skill.mp}）<br><small>${j.skill.desc}</small></p>
+      <p class="small-num">レベル・わざ・アイテムは そのまま。職業はいつでも かえられるよ</p>
+      <div class="row"><button class="btn" data-close>やめる</button><button class="btn gold" id="doJob">転職する</button></div>`, () => {
+      $('#doJob').onclick = () => {
+        S.job = id; S.jobsUsed = Object.assign({}, S.jobsUsed, {[id]: true}); save();
+        tone([[392,.12],[523,.12],[659,.12],[784,.12],[1047,.4]], 'triangle', .08);
+        overlay(`<div class="jobglow">${heroImg(S.lv, id)}</div><h3>${j.name}に 転職した！</h3>
+          <p>こうげき ${atkOf(S.lv)}　HP ${maxHpOf(S.lv)}　MP ${maxMpOf(S.lv)}<br>特技「<b style="color:var(--gold)">${j.skill.name}</b>」がつかえる！</p>
+          <button class="btn gold" id="jobOk">つぎへ ▶</button>`, () => { $('#jobOk').onclick = () => { closeOv(); renderMap(); }; });
+      };
+    });
+  });
+}
+
+// ===== MPと特技 =====
+function mpBarHtml(){
+  return `<div class="bar mp"><i id="heroMp" style="width:${B.mp / maxMpOf(S.lv) * 100}%"></i></div>`;
+}
+function updateMp(){
+  const m = $('#heroMp'); if (m) m.style.width = B.mp / maxMpOf(S.lv) * 100 + '%';
+  const l = $('#heroHpLbl'); if (l) l.textContent = `Lv${S.lv}　HP ${B.heroHp}/${maxHpOf(S.lv)}　MP ${B.mp}/${maxMpOf(S.lv)}`;
+}
+function gainMp(n){ B.mp = Math.min(maxMpOf(S.lv), (B.mp || 0) + n); updateMp(); refreshItemBar(); }
+function refreshItemBar(){ const b = $('#itembar'); if (b) { b.outerHTML = itemBar(); bindItems(); } }
+function skillBtn(){
+  const j = JOB(), sk = j.skill, noDmg = B.sp && jobId() === 'mage';
+  const can = B.mp >= sk.mp && !noDmg;
+  return `<button class="btn small skillbtn" id="skillBtn" ${can ? '' : 'disabled'} title="${sk.desc}"><span class="mpcost">MP${sk.mp}</span>${sk.name}</button>
+    ${B.charge > 1 ? `<span class="buff">次の正解 ${B.charge}ばい</span>` : ''}${B.guard ? `<span class="buff">かげぶんしん のこり${B.guard}</span>` : ''}${B.hint ? '<span class="buff">ひらめき中</span>' : ''}`;
+}
+function castSkill(){
+  const id = jobId(), sk = JOB().skill;
+  if (B.busy || B.mp < sk.mp) return;
+  if (id === 'hero' || id === 'warrior') { if (B.charge > 1) return toast('もう ためているよ'); }
+  if (id === 'priest' && B.heroHp >= maxHpOf(S.lv)) return toast('HPはまんたんだよ');
+  if (id === 'ninja' && B.guard) return toast('もう ぶんしんしているよ');
+  if (id === 'sage' && B.hint) return toast('もう ひらめいているよ');
+  if (id === 'mage' && B.sp) return toast('封印は 問題に答えないと やぶれない！');
+  B.mp -= sk.mp; updateMp();
+  const ar = $('#arena');
+  ar.insertAdjacentHTML('beforeend', `<div class="skillcall">${sk.name}！</div>`); setTimeout(() => $('.skillcall')?.remove(), 1200);
+  anim($('#heroArt'), 'h-cast', 600);
+  if (id === 'hero') { B.charge = 3; B.chargeHeal = true; fx('glow', '#9fd8ff'); tone([[523,.08],[784,.08],[1047,.2]], 'square', .06); $('#msg').textContent = '剣士は 刀に力をこめた！ 次の正解で 大ダメージ！'; }
+  if (id === 'warrior') { B.charge = 2.5; fx('glow', '#ff9a5a'); tone([[196,.1],[262,.1],[392,.2]], 'sawtooth', .06); $('#msg').textContent = '焔の刀が 赤くもえあがった！'; }
+  if (id === 'priest') { B.heroHp = maxHpOf(S.lv); updateHeroHp(); fx('heal'); tone([[784,.1],[988,.1],[1175,.1],[1568,.3]], 'triangle', .07); $('#msg').textContent = '桜・いやしの舞！ HPが ぜんかいふくした！'; }
+  if (id === 'ninja') { B.guard = 2; fx('clone'); tone([[1175,.05],[880,.05],[1175,.05]], 'square', .05); $('#msg').textContent = '影・残像！ 分身があらわれた！'; }
+  if (id === 'sage') { B.hint = true; applyHint(); fx('glow', '#9affc0'); tone([[659,.08],[880,.08],[1319,.25]], 'triangle', .06); $('#msg').textContent = '月・心眼！ こたえが見えてきた…'; }
+  if (id === 'mage') {
+    B.busy = true; fx('fire');
+    tone([[110,.15],[147,.15],[220,.3]], 'sawtooth', .07);
+    setTimeout(() => {
+      const dmg = Math.round(atkOf(S.lv) * 4 * (B.power || 1) * (0.9 + Math.random() * .2));
+      anim($('#monArt'), 'm-hurt', 450); anim(ar, 'shake-big', 550); floatText(dmg, 'crit', '60%', '28%');
+      B.mon.hp = Math.max(0, B.mon.hp - dmg);
+      $('#monHp').style.width = B.mon.hp / B.mon.max * 100 + '%'; $('#monHpLbl').textContent = `HP ${B.mon.hp}/${B.mon.max}`;
+      $('#msg').textContent = `雷・天雷落とし！ ${B.mon.name}に${dmg}のダメージ！`;
+      setTimeout(() => { if (B.mon.hp <= 0) defeat([]); else B.busy = false; }, 900);
+    }, 650);
+  }
+  refreshItemBar();
+}
+// 特技のエフェクト
+function fx(kind, color){
+  const ar = $('#arena'); if (!ar) return;
+  const e = document.createElement('div'); e.className = 'fx-' + kind; if (color) e.style.setProperty('--c', color);
+  if (kind === 'fire') e.innerHTML = '<i></i><i></i><i></i><i></i><i></i>';
+  ar.appendChild(e); setTimeout(() => e.remove(), 1300);
+}
+// ひらめき：4たくから まちがいを2つ消す／手書きなら お手本をうすく出す
+function applyHint(){
+  if (!B.hint || !B.q) return;
+  const ans = B.q.kind === 'bushu' ? BUSHU[B.q.bch][1] : B.q.kind === 'yomi' ? B.q.it.yomi : B.q.it.target;
+  const wrong = [...document.querySelectorAll('.choice')].filter(b => b.dataset.v !== ans && !b.disabled);
+  if (wrong.length) { shuffle(wrong).slice(0, 2).forEach(b => { b.disabled = true; b.classList.add('ng'); }); return; }
+  const cv = $('#pad'); if (cv && window.STROKES) { cv._hint = [...B.q.it.target]; cv._redraw(); }
+}
+
+// ===== 仮面の剣士（ストーリー）=====
+// h = 剣士、r = 仮面の剣士、R = 仮面をはずしたライバル（カイ）
+const SPEAKERS = {h: ['剣士', 'face_hero'], r: ['仮面の剣士', 'face_rival_m'], R: ['カイ', 'face_rival']};
+// どのステージの、何体目をたおしたあとに割りこんでくるか
+const RIVAL_EVENTS = {
+  's2-2': {after: 1, enter: [['r', '…おまえが 新しく入った鬼斬りの剣士か。'], ['h', 'だれだ！？ 鬼…じゃないのか？'], ['r', '名乗るほどの者ではない。仮面の剣士とでも呼べ。'], ['r', 'その刀に 漢字の力が宿っているか、ためさせてもらう！']],
+    exit: [['r', '…筋は悪くない。'], ['r', 'だが、その程度では 鬼の王には届かない。もっと漢字をみがけ。']]},
+  's3-3': {after: 2, enter: [['r', 'また会ったな。'], ['r', '時計の針が進むように、おまえの剣も 少しは進んだようだ。'], ['h', '今度こそ 仮面の下を見せてもらう！'], ['r', 'できるものなら やってみろ！']],
+    exit: [['r', 'くっ…前より 太刀筋がするどい…！'], ['r', '…まだだ。まだ ぼくは負けられない。']]},
+  's5-2': {after: 1, enter: [['r', '嵐の海まで 追いかけてきたのか。'], ['h', 'どうして 鬼斬りなのに ひとりで戦うんだ？'], ['r', '…ぼくには 時間がないんだ。書き取りの力、見せてみろ！']],
+    exit: [['r', 'その一画一画…まっすぐだ。'], ['r', '（この仮面の下の 鬼の角を…見られるわけにはいかない…）']]},
+  's7-3': {after: 2, enter: [['r', 'ここは 鬼の王の城だ。'], ['r', '鬼の王は 人に呪いをかけ、鬼に変えてしまう。'], ['h', 'まさか…きみも…？'], ['r', '…よけいな詮索はするな！']],
+    exit: [['r', '王の前で 力を使いはたすな。'], ['r', '…決着は 満月の夜、天守閣の屋根の上でつけよう。']]},
+  's9-1': {after: 2, enter: [['r', '雪の街道…ここで 引き返せ。'], ['h', 'いやだ！ きみを置いては行けない！'], ['r', '…おまえは 本当に おせっかいなやつだな。']],
+    exit: [['r', '…わかった。おまえの剣を 信じてみよう。'], ['r', '最後の満月の夜、天守閣で待っている。']]},
+};
+const FINAL_TALK = {
+  start: [['r', 'よく来たな、剣士。'], ['r', '鬼の王をたおした おまえこそ、ぼくの最後の相手に ふさわしい。'], ['h', 'きみは…いったい何者なんだ？'], ['r', '答えは、この刀で聞け！']],
+  unmask1: [['r', 'くっ…この仮面がわれたら…。'], ['r', '…いや。もう、かくす必要はない！']],
+  unmask2: [['R', 'ぼくの名は カイ。鬼の王の呪いで 半分 鬼になった剣士だ。'], ['R', '鬼になる前に、だれよりも強くなりたかった…！'], ['h', 'カイ…！ 呪いは 漢字の力で 断ち切れるはずだ！'], ['R', 'ならば その刀で 見せてみろ！！']],
+  end: [['R', '…角が…消えていく…。'], ['R', 'おまえの刀が、呪いを 断ち切ったのか。'], ['R', '漢字は、だれかといっしょに学ぶと もっと強くなるんだな。'], ['h', 'これからは いっしょに戦おう！'], ['R', '…ああ。次は 負けないぞ、相棒！']],
+};
+const FINAL_STAGE = {id: 'final', art: 'rival', bg: 'bgW25', name: '終章 仮面の剣士', area: '満月の天守閣', sky: ['#101030', '#30305a'], key: [0, 0], diff: 9,
+  mons: [['仮面の剣士', 'rival']], items: ALL, final: true};
+function rivalMon(phase, ev){
+  const m = rivalStats(phase, ev); m.hp = m.max; m.posed = true; return m;   // HPを満タンにしてから出す
+}
+function rivalStats(phase, ev){
+  const a = atkOf(S.lv);
+  if (ev) return {name: '仮面の剣士', type: 'rival', rival: true, phase: 1, ev, img: 'rival_m', boss: false, max: a * 4, atk: Math.round(9 + B.idx * 2.5)};
+  if (phase === 1) return {name: '仮面の剣士', type: 'rival', rival: true, phase: 1, img: 'rival_m', boss: false, max: a * 8, atk: Math.round(12 + S.lv * .8)};
+  return {name: '鬼の剣士・カイ', type: 'rival', rival: true, phase: 2, img: 'rival', boss: true, max: a * 12, atk: Math.round(15 + S.lv)};
+}
+// 会話ウィンドウ（タップで次へ）
+function talk(lines, done){
+  document.querySelector('#talk')?.remove();
+  const w = document.createElement('div'); w.id = 'talk';
+  w.innerHTML = `<div class="talkbox" role="dialog" aria-live="polite"><img class="px face" alt=""><div class="tbody"><div class="tname"></div><div class="ttext"></div></div><span class="tnext">▼</span></div>`;
+  document.body.appendChild(w);
+  let i = -1, typing = null, full = '';
+  const show = () => {
+    i++;
+    if (i >= lines.length) { w.remove(); done && done(); return; }
+    const [who, text] = lines[i], [nm, face] = SPEAKERS[who];
+    w.querySelector('.face').src = `assets/${face}.png`;
+    w.querySelector('.tname').textContent = nm;
+    w.querySelector('.talkbox').className = 'talkbox ' + (who === 'h' ? 'hero' : 'rival');
+    const el = w.querySelector('.ttext'); el.textContent = ''; full = text;
+    let k = 0; clearInterval(typing);
+    typing = setInterval(() => { el.textContent = full.slice(0, ++k); if (k % 2) tone([[who === 'h' ? 880 : 520, .02]], 'square', .015); if (k >= full.length) { clearInterval(typing); typing = null; } }, 38);
+  };
+  w.addEventListener('click', () => { if (typing) { clearInterval(typing); typing = null; w.querySelector('.ttext').textContent = full; } else show(); });
+  show();
+}
+function monPose(p){
+  if (!B || !B.mon.img) return; const im = $('#monArt img'); if (!im) return;
+  im.src = `assets/${B.mon.img}${p ? '_' + p : ''}.png`; im.style.animation = p ? 'none' : '';
+}
+function rivalAppear(ev){
+  B.mon = rivalMon(1, ev); B.bossShown = true;
+  renderBattle();
+  anim($('#monArt'), 'rival-in', 900); anim($('#arena'), 'shake', 400);
+  $('#msg').textContent = '仮面の剣士が あらわれた！';
+  tone([[330, .1], [392, .1], [494, .1], [659, .3]], 'sawtooth', .05);
+  setTimeout(() => talk(ev.enter), 700);
+}
+function rivalDown(ups){
+  B.busy = true;
+  const m = B.mon;
+  if (m.ev) {   // ステージの途中に割りこんできたライバルが退場する
+    monPose('dmg');
+    $('#msg').textContent = '仮面の剣士は ひざをついた…';
+    setTimeout(() => talk(m.ev.exit, () => {
+      anim($('#monArt'), 'rival-out', 900); setTimeout(() => { const a = $('#monArt'); if (a) a.style.visibility = 'hidden'; }, 850);
+      S.rival = S.rival || {}; S.rival[B.sid] = true;
+      const bonus = Math.round(40 + B.idx * 12); ups = ups.concat(addExp(bonus)); save();
+      $('#msg').textContent = `仮面の剣士は 去っていった…　けいけんち +${bonus}`;
+      setTimeout(() => {
+        const after = () => { B.mi++; spawn(); renderBattle(); $('#msg').textContent = `${B.mon.name}があらわれた！`; };
+        ups.length ? showLevelUp(ups, after) : after();
+      }, 1200);
+    }), 600);
+    return;
+  }
+  if (m.phase === 1) {   // ラスボス：仮面をはずす
+    monPose('dmg');
+    setTimeout(() => talk(FINAL_TALK.unmask1, () => unmask(() => {
+      B.mon = rivalMon(2); B.bossShown = true;
+      renderBattle();
+      anim($('#monArt'), 'boss-in', 1300); anim($('#arena'), 'shake-big', 550);
+      $('#msg').textContent = '仮面の下から あらわれたのは…！';
+      setTimeout(() => talk(FINAL_TALK.unmask2), 1000);
+    })), 500);
+    return;
+  }
+  // ラスボスをたおした
+  SE.win(); monPose('kneel'); BGM.stop();
+  $('#msg').textContent = 'カイは ひざをついた。';
+  setTimeout(() => talk(FINAL_TALK.end, () => kaiJoin(ups)), 900);
+}
+function unmask(done){
+  monPose('mask'); BGM.stop();
+  tone([[220, .3], [233, .3], [247, .5]], 'sawtooth', .05);
+  setTimeout(() => {
+    const art = $('#monArt'), r = art.getBoundingClientRect(), ar = $('#arena').getBoundingClientRect();
+    $('#arena').insertAdjacentHTML('beforeend', '<div class="bigflash"></div>');
+    const mk = document.createElement('img'); mk.className = 'px maskfly'; mk.src = 'assets/rival_maskobj.png';
+    mk.style.left = (r.left - ar.left + r.width * .3) + 'px'; mk.style.top = (r.top - ar.top + 10) + 'px';
+    $('#arena').appendChild(mk);
+    tone([[1568, .05], [1175, .05], [1760, .08], [988, .3]], 'square', .06);
+    anim($('#arena'), 'shake-big', 550);
+    setTimeout(() => done(), 1300);
+  }, 900);
+}
+function ending(ups){
+  S.cleared.final2 = (S.cleared.final2 || 0) + 1;
+  const first = !S.ending; S.ending = true;
+  const more = first ? addExp(500) : []; ups = (ups || []).concat(more); save();
+  BGM.play('ending');
+  const ov = document.createElement('div'); ov.className = 'endroll'; ov.id = 'endroll';
+  ov.innerHTML = `<div class="endin" style="background-image:url(assets/bgX4.jpg)">
+    <div class="endpair"><img class="px" src="assets/hero_t${heroTier(S.lv)}.png" alt="剣士">${ALLY_ORDER.filter(hasAlly).map(id => `<img class="px" src="assets/ally_${id}.png" alt="${ALLIES[id].short}">`).join('')}</div>
+    <h2>THE END</h2>
+    <p>鬼斬り隊の仲間と 力を合わせ、鬼の王・黒帝を たおした！<br>都に 朝が来た。しょうごう「<b>真の漢字剣士</b>」を手に入れた！</p>
+    <p class="endstat">正解した問題 ${S.total}問・ログイン ${S.login.days || 1}日・Lv ${S.lv}${first ? '<br>クリアボーナス EXP 500' : ''}</p>
+    <p class="endmsg">ここまで よくがんばったね！<br>これからも 漢字の ぼうけんは つづく…</p>
+    <button class="btn gold" id="endOk">マップへもどる</button></div>`;
+  document.body.appendChild(ov);
+  $('#endOk').onclick = () => { ov.remove(); ups.length ? showLevelUp(ups, renderMap) : renderMap(); };
+}
+function playStageBGM(){
+  if (B.mon.rival) return BGM.play(B.mon.phase === 2 ? 'final' : 'rival');
+  if (B.hyaku) return BGM.play('kisho', [2, 8]);
+  if (B.mon.kisho) return BGM.play('kisho', [6 - B.mon.kisho, (6 - B.mon.kisho) * 3]);
+  if (B.mon.lastboss) return BGM.play(B.mon.lastboss === 2 ? 'maou2' : 'maou1');
+  if (B.mon.special) { const lv = B.sp.lv; return BGM.play(lv >= 8 ? 'special2' : 'special', [lv >= 8 ? lv - 8 : Math.floor((lv - 1) / 2), (lv - 1) * 3]); }
+  const st = B.st;
+  if (!st.ch) return BGM.play(B.mon.boss ? 'boss' : 'battle', st.key);
+  if (B.mon.boss) return BGM.play('waboss', [st.ci - 4, st.ci * 2]);
+  BGM.play(CH_SONG[st.ci], [CH_KEY[st.ci] + st.si * 2, st.si * 6, STAGE_WAVES[st.si % 4]]);
+}
+
+// ===== スペシャルステージ：隠しボス「墨鬼大将」=====
+// 問題1つ1つが「封印」。正解した問題の封印がやぶれ、ぜんぶやぶるとたおせる。たおすたびにレベルが上がる。
+const SPECIAL = {id: 'sp', art: 'sp', bg: 'bgW28', name: 'スペシャル', area: '墨の異界（十月までの漢字のまとめ）', sky: ['#120820', '#3a1050'], key: [0, 0], diff: 6,
+  mons: [['墨鬼大将', 'dragon']], items: ITEMS.sp, special: true};
+function spLevel(){ return (S.special && S.special.lv) || 1; }
+// Lv1〜10 の強さ。問題はいつも50問。heal = まちがえると回復する封印の数、time = 1問の制限時間（秒）、
+// n = 4たく/6たく、hand = かきは手書きでこたえる、form = ボスのすがた、fx = 演出の強さ
+const SP_LEVELS = [
+  null,
+  {name: '墨鬼大将',          form: 'sp_boss',   heal: 0, time: 0,  n: 4, hand: false, fx: 1, aura: '#ff3050', note: 'まちがえても封印はへらない'},
+  {name: '墨鬼大将',          form: 'sp_boss',   heal: 1, time: 0,  n: 4, hand: false, fx: 1, aura: '#ff3050', note: 'まちがえると封印が1つ回復'},
+  {name: '覚醒・墨鬼大将',    form: 'sp_boss2',  heal: 1, time: 0,  n: 4, hand: false, fx: 2, aura: '#ffb000', note: '覚醒！ 金の炎をまとう'},
+  {name: '覚醒・墨鬼大将',    form: 'sp_boss2',  heal: 2, time: 30, n: 4, hand: false, fx: 2, aura: '#ffb000', note: '制限時間30秒・まちがえると封印が2つ回復'},
+  {name: '蒼炎の墨鬼',        form: 'sp_boss3',  heal: 2, time: 25, n: 4, hand: false, fx: 3, aura: '#40c8ff', note: '青い炎・制限時間25秒'},
+  {name: '蒼炎の墨鬼',        form: 'sp_boss3',  heal: 2, time: 20, n: 6, hand: false, fx: 3, aura: '#40c8ff', note: 'えらぶ問題が6たくになる'},
+  {name: '雷神の墨鬼',        form: 'sp_boss4',  heal: 3, time: 20, n: 6, hand: false, fx: 4, aura: '#c060ff', note: '雷をまとう・まちがえると封印が3つ回復'},
+  {name: '雷神の墨鬼',        form: 'sp_boss4',  heal: 3, time: 18, n: 6, hand: true,  fx: 4, aura: '#c060ff', note: 'かきは手書きでこたえる'},
+  {name: '真・墨鬼大将',      form: 'sp_boss5',  heal: 3, time: 15, n: 6, hand: true,  fx: 5, aura: '#ffd84d', note: '4本の腕と光輪・制限時間15秒'},
+  {name: '墨鬼大将・極',      form: 'sp_boss6',  heal: 4, time: 12, n: 6, hand: true,  fx: 6, aura: 'rainbow', note: '最終形態・まちがえると封印が4つ回復'},
+];
+const SP_MAX = 10;
+function spRule(lv){
+  const L = SP_LEVELS[Math.min(lv, SP_MAX)];
+  return Object.assign({}, L, {atk: 10 + lv * 7, awake: lv >= 3});
+}
+// まぜるときは 50問のうち 7わりを かき にする（どの問題がかきかは レベルごとにかわる）
+function spKind(it, lv){
+  if (S.mode === 'yomi') return 'yomi';
+  if (S.mode === 'kaki' || lv < 3) return 'kaki';
+  return seededRand(it.id + ':' + lv)() < .7 ? 'kaki' : 'yomi';
+}
+function startSpecial(){
+  const lv = spLevel(), rule = spRule(lv);
+  const seals = ITEMS.sp.map(it => { const kind = spKind(it, lv); return {key: it.id + ':' + kind, it, kind}; });
+  B = {st: SPECIAL, sid: 'sp', art: 'sp', idx: 6, items: ITEMS.sp, queue: [], mi: 0, heroHp: maxHpOf(S.lv), mp: maxMpOf(S.lv), streak: 0, correct: 0, wrong: 0, busy: false, power: 1, charge: 1, guard: 0, hint: false,
+    sp: {lv, rule, seals, remain: new Set(seals.map(x => x.key))}, bossShown: true};
+  B.mon = {name: `${rule.name} Lv${lv}`, type: 'dragon', boss: true, special: true, img: rule.form, max: seals.length, hp: seals.length, atk: rule.atk};
+  S.special = Object.assign({lv: 1, best: 0, met: false}, S.special || {}, {met: true}); save();
+  renderBattle();
+  spIntro();
+}
+function spNext(){
+  const sp = B.sp;
+  let x;
+  do {   // すでにやぶった封印は とばす
+    if (!B.queue.length) B.queue = shuffle(sp.seals.filter(y => sp.remain.has(y.key)));
+    x = B.queue.pop();
+  } while (!sp.remain.has(x.key));
+  return {it: x.it, kind: x.kind, seal: x.key};
+}
+function spIntro(){
+  const ar = $('#arena');
+  const L = B.sp.rule, lv = B.sp.lv;
+  ar.classList.add('fx' + L.fx); if (L.aura === 'rainbow') ar.classList.add('rainbow');
+  ar.style.setProperty('--aura', L.aura === 'rainbow' ? '#ffffff' : L.aura);
+  ar.insertAdjacentHTML('beforeend', `<div class="warn"><div class="warnband"><span>WARNING　Lv${lv} ${L.name}　WARNING　Lv${lv} ${L.name}　WARNING</span></div><div class="lvnote">${L.note}${L.time ? `<br>1問 ${L.time}秒` : ''}</div></div>`);
+  if (L.fx >= 2) spAmbient();
+  anim($('#monArt'), 'sp-rise', 1800); anim(ar, 'shake-big', 550);
+  tone([[82, .4], [78, .4], [73, .6]], 'sawtooth', .07); setTimeout(() => tone([[988, .08], [740, .08], [988, .08], [740, .3]], 'square', .05), 600);
+  setTimeout(() => { $('.warn')?.remove(); anim($('#arena'), 'shake-big', 550); }, 2000);
+  if (L.fx >= 4) [700, 1200, 1500].forEach(t => setTimeout(() => thunder(), t));
+  $('#msg').textContent = `封印の神殿に ${B.mon.name} があらわれた！ ぜんぶの問題に正解して封印をやぶれ！`;
+}
+// まわりにうかぶ漢字・火の粉（レベルが上がるほど多く、はでに）
+function spAmbient(){
+  const ar = $('#arena'), L = B.sp.rule; if (!ar) return;
+  const layer = document.createElement('div'); layer.className = 'spamb';
+  const chars = [...new Set(ITEMS.sp.flatMap(it => [...it.target]).filter(c => /[一-鿿]/.test(c)))];
+  const n = 6 + L.fx * 4;
+  for (let i = 0; i < n; i++) {
+    const k = document.createElement('span'); k.textContent = pick(chars);
+    k.style.left = Math.random() * 100 + '%'; k.style.animationDelay = (-Math.random() * 6) + 's';
+    k.style.animationDuration = (4 + Math.random() * 4) + 's'; k.style.fontSize = (14 + Math.random() * 18 + L.fx * 2) + 'px';
+    if (L.aura === 'rainbow') k.style.color = `hsl(${Math.random() * 360},100%,70%)`;
+    layer.appendChild(k);
+  }
+  ar.appendChild(layer);
+}
+function thunder(){
+  const ar = $('#arena'); if (!ar) return;
+  const b = document.createElement('div'); b.className = 'bolt'; b.style.left = (40 + Math.random() * 50) + '%';
+  ar.appendChild(b); ar.insertAdjacentHTML('beforeend', '<div class="bigflash"></div>');
+  setTimeout(() => { b.remove(); $('.bigflash')?.remove(); }, 450);
+  tone([[60, .25], [45, .35]], 'sawtooth', .06);
+}
+// 制限時間
+function spTimerStart(){
+  spTimerStop();
+  const L = B.sp.rule; if (!L.time) return;
+  const hand = $('#pad'), sec = L.time + (hand ? [...B.q.it.target].length * 6 : 0);
+  const end = Date.now() + sec * 1000, el = document.createElement('div');
+  el.className = 'sptimer'; el.innerHTML = '<i></i><span></span>';
+  $('#sheet').prepend(el);
+  B.sp.timer = setInterval(() => {
+    if (!B || !B.sp) return spTimerStop();
+    if (B.busy) return;
+    const left = Math.max(0, end - Date.now());
+    el.querySelector('i').style.width = left / (sec * 10) + '%';
+    el.querySelector('span').textContent = `のこり ${Math.ceil(left / 1000)}秒`;
+    el.classList.toggle('hurry', left < 5000);
+    if (!left) { spTimerStop(); spTimeout(); }
+  }, 100);
+}
+function spTimerStop(){ if (B && B.sp && B.sp.timer) { clearInterval(B.sp.timer); B.sp.timer = null; } }
+function spTimeout(){
+  if (B.busy) return; B.busy = true;
+  const correct = B.q.kind === 'yomi' ? B.q.it.yomi : B.q.it.target;
+  document.querySelectorAll('.choice').forEach(x => { x.disabled = true; if (x.dataset.v === correct) x.classList.add('ok'); });
+  const hb = $('#handBtns'); if (hb) hb.remove();
+  const pad = $('#pad'); if (pad) pad.style.pointerEvents = 'none';
+  toast('時間切れ！');
+  onWrong(false);
+}
+function spSealBar(){
+  if (!B.sp) return '';
+  const done = B.sp.seals.length - B.sp.remain.size;
+  return `<div class="sealbar" id="sealbar"><span>封印 のこり <b id="sealLeft">${B.sp.remain.size}</b> / ${B.sp.seals.length}</span>
+    <div class="seals">${B.sp.seals.map(x => `<i class="${B.sp.remain.has(x.key) ? '' : 'off'}" data-k="${x.key}"></i>`).join('')}</div>
+    <span class="small-num">Lv${B.sp.lv}${B.sp.rule.heal ? `・まちがえると封印が${B.sp.rule.heal}つ回復` : ''}</span></div>`;
+}
+function spUpdate(){
+  B.mon.hp = B.sp.remain.size;
+  $('#monHp').style.width = B.mon.hp / B.mon.max * 100 + '%';
+  $('#monHpLbl').textContent = `封印 ${B.mon.hp}/${B.mon.max}`;
+  const left = $('#sealLeft'); if (left) left.textContent = B.sp.remain.size;
+  document.querySelectorAll('.seals i').forEach(i => i.classList.toggle('off', !B.sp.remain.has(i.dataset.k)));
+}
+// 正解した漢字がボスの上でくだけちる
+function sealBreak(text){
+  const ar = $('#arena'), m = $('#monArt').getBoundingClientRect(), a = ar.getBoundingClientRect();
+  const x = m.left - a.left + m.width / 2, y = m.top - a.top + m.height * .45;
+  const k = document.createElement('div'); k.className = 'sealk'; k.style.left = x + 'px'; k.style.top = y + 'px';
+  k.innerHTML = `<span class="l">${esc(text)}</span><span class="r">${esc(text)}</span>`;
+  ar.appendChild(k); setTimeout(() => k.remove(), 1100);
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('i'); p.className = 'spark';
+    const ang = Math.random() * Math.PI * 2, d = 60 + Math.random() * 90;
+    p.style.left = x + 'px'; p.style.top = y + 'px';
+    p.style.setProperty('--dx', Math.cos(ang) * d + 'px'); p.style.setProperty('--dy', Math.sin(ang) * d + 'px');
+    ar.appendChild(p); setTimeout(() => p.remove(), 900);
+  }
+}
+function spCorrect(){
+  spTimerStop();
+  const sp = B.sp, q = B.q;
+  B.charge = 1; B.chargeHeal = false; B.hint = false; gainMp(MP_GAIN());
+  B.streak++; B.correct++; S.total++;
+  stampToday(); track('correct'); track(q.kind); track('streak', B.streak);
+  if (q.kind === 'kaki' && S.kaki === 'hand') track('hand');
+  if (S.weak[q.it.id]) { S.weak[q.it.id]--; if (S.weak[q.it.id] <= 0) delete S.weak[q.it.id]; }
+  sp.remain.delete(q.seal);
+  anim($('#heroArt'), 'h-atk', 450); setTimeout(() => heroPose('atk'), 90); setTimeout(() => heroPose(''), 430);
+  setTimeout(() => {
+    SE.crit();
+    sealBreak(q.it.target);
+    anim($('#monArt'), 'm-hurt', 450);
+    const ar = $('#arena'); ar.insertAdjacentHTML('beforeend', '<div class="bigflash sp"></div>'); setTimeout(() => $('.bigflash')?.remove(), 450);
+    spUpdate();
+    $('#msg').textContent = `「${q.it.target}」の封印をやぶった！ のこり ${sp.remain.size}`;
+    const ups = addExp(12 + sp.lv * 3); save();
+    setTimeout(() => {
+      if (!sp.remain.size) return spDefeat(ups);
+      if (ups.length) return showLevelUp(ups, askNext);
+      askNext();
+    }, 900);
+  }, 200);
+}
+function spHeal(){
+  const sp = B.sp, n = sp.rule.heal; if (!n) return;
+  const broken = sp.seals.filter(x => !sp.remain.has(x.key));
+  const back = shuffle(broken).slice(0, n);
+  back.forEach(x => sp.remain.add(x.key));
+  if (back.length) {
+    setTimeout(() => {
+      spUpdate();
+      $('#monArt').insertAdjacentHTML('beforeend', '<div class="healfx"></div>'); setTimeout(() => $('.healfx')?.remove(), 900);
+      tone([[220, .1], [262, .1], [330, .25]], 'sawtooth', .05);
+      toast(`墨鬼が封印を ${back.length}つ 回復した！<br><small>${back.map(x => x.it.target).join('・')}</small>`);
+    }, 700);
+  }
+}
+function spDefeat(ups){
+  const sp = B.sp; B.busy = true;
+  BGM.stop();
+  const ar = $('#arena');
+  [0, 300, 600, 900].forEach(t => setTimeout(() => { ar.insertAdjacentHTML('beforeend', '<div class="bigflash"></div>'); setTimeout(() => $('.bigflash')?.remove(), 450); anim(ar, 'shake-big', 550); SE.hit(); }, t));
+  setTimeout(() => { $('#monArt img').style.animation = 'none'; $('#monArt').classList.add('die-boss'); for (let i = 0; i < 3; i++) setTimeout(() => sealBreak('封'), i * 200); }, 1000);
+  setTimeout(() => {
+    SE.win();
+    const lv = sp.lv, rate = Math.round(B.correct / Math.max(1, B.correct + B.wrong) * 100);
+    const last = lv >= SP_MAX, firstMax = last && !(S.special.best >= SP_MAX);
+    S.special.lv = Math.min(SP_MAX, lv + 1); S.special.best = Math.max(S.special.best || 0, lv);
+    const reward = {exp: 150 + lv * 100, potion: 1, seed: lv >= 2 ? 1 : 0};
+    ups = ups.concat(grant(reward));
+    if (lv === 3) toast('しょうごう「十月の漢字マスター」を手に入れた！');
+    if (lv === 6) toast('しょうごう「封印やぶりの剣士」を手に入れた！');
+    if (firstMax) toast('しょうごう「墨鬼を斬りし者」を手に入れた！');
+    save();
+    BGM.play('fanfare');
+    overlay(`<img class="px" src="assets/${sp.rule.form}.png" alt="" style="filter:brightness(.5) grayscale(.6)">
+      <h3>${sp.rule.name} Lv${lv} をたおした！</h3>
+      <p>${sp.seals.length}この封印をぜんぶやぶった！<br>正解 ${B.correct}問・まちがい ${B.wrong}問（正答率 ${rate}%）</p>
+      <p>ほうび：${rewardText(reward)}</p>
+      ${last ? `<p style="color:var(--gold)">ついに 墨鬼大将・極を たおした！<br>十月までの漢字は かんぺきだ！${firstMax ? '<br>しょうごう「墨鬼を斬りし者」' : ''}</p>`
+             : `<p style="color:#ff8a8a">墨鬼は さらに強くなって よみがえる… 次は Lv${lv + 1}「${SP_LEVELS[lv + 1].name}」<br><small>${SP_LEVELS[lv + 1].note}</small></p>`}
+      <div class="row"><button class="btn" id="spMap">マップへ</button><button class="btn gold" id="spAgain">${last ? 'もういちど Lv10' : `Lv${lv + 1} にちょうせん`}</button></div>`, () => {
+      $('#spMap').onclick = () => { closeOv(); ups.length ? showLevelUp(ups, renderMap) : renderMap(); };
+      $('#spAgain').onclick = () => { closeOv(); ups.length ? showLevelUp(ups, () => { B = null; startSpecial(); }) : startSpecial(); };
+    });
+  }, 2300);
+}
+
+// ===== 六鬼将（中ボス。数字が小さいほど強い）と 鬼斬り隊の師範（仲間）=====
+const KISHO = [
+  {n: 6, num: '陸', name: '鏡鬼', stage: 's3-3', art: '鏡うつし', ally: 'taka',
+   enter: [['k6', 'うふふ…かわいい剣士さん。わたしは 六鬼将の陸、鏡鬼。'], ['k6', '鏡にうつしたものは なんでも わたしのもの。あなたの漢字も もらうわ！'], ['h', '六鬼将…！ 鬼の王の幹部か！']],
+   exit: [['k6', '鏡が…われる…。わたしが 負けるなんて…。'], ['k6', 'でも 覚えておきなさい。陸は 六鬼将で いちばん下…。']]},
+  {n: 5, num: '伍', name: '鐘鬼', stage: 's4-2', art: '忘却の鐘', ally: 'kame',
+   enter: [['k5', 'ゴォォン…わしは 伍の鬼将、鐘鬼。'], ['k5', 'わしの鐘の音を聞いた者は、覚えた漢字を ぜんぶ忘れてしまうのだ！'], ['h', '忘れるもんか！ 何度も練習したんだ！']],
+   exit: [['k5', 'ば、ばかな…鐘の音が きかぬとは…。'], ['k5', 'ゴォン…上の鬼将たちは わしより ずっと強いぞ…。']]},
+  {n: 4, num: '肆', name: '渦鬼', stage: 's5-3', art: '大渦潮', ally: 'tsuru',
+   enter: [['k4', '海の底まで よく来たな、剣士。おれは 肆の鬼将、渦鬼。'], ['k4', 'この渦に のまれた者は 二度と 浮かんでこられねえ！']],
+   exit: [['k4', '渦が…止まった…。'], ['k4', 'くそっ…参より上は 本物の化け物だぜ…。']]},
+  {n: 3, num: '参', name: '灯籠鬼', stage: 's6-2', art: '青炎灯籠', ally: 'kitsune',
+   enter: [['k3', '…青い炎は 命の炎。わたしは 参の鬼将、灯籠鬼。'], ['k3', 'あなたの 漢字の炎、わたしの灯籠に いただきましょう。']],
+   exit: [['k3', '灯籠の火が…消えていく…。'], ['k3', '…弐と壱は、わたしなど 比べものにならない…。']]},
+  {n: 2, num: '弐', name: '雷獣鬼', stage: 's8-2', art: '雷獣の爪', ally: 'tora',
+   enter: [['k2', 'ガルルル…嵐を呼んだのは おれだ。弐の鬼将、雷獣鬼！'], ['k2', '雷より 速く 答えられるか！？']],
+   exit: [['k2', 'ぐ…おれの雷が…おまえの刀に 負けた…。'], ['k2', '壱の墨染鬼さまは…王に いちばん近い鬼だ…。']]},
+  {n: 1, num: '壱', name: '墨染鬼', stage: 's9-2', art: '墨染めの太刀', ally: 'ryu',
+   enter: [['k1', '…よくぞ ここまで来た。六鬼将の壱、墨染鬼。'], ['k1', 'わが刀は 墨。書き損じた者を すべて 黒くぬりつぶす。'], ['k1', '一画の まちがいも ゆるさぬぞ。'], ['h', 'ていねいに 書いてきた この漢字で、勝つ！']],
+   exit: [['k1', '…見事。一画一画に、迷いがなかった。'], ['k1', '王は…黒帝さまは 人の姿をしているが、それは 仮の姿…。気をつけよ…。']]},
+];
+const KISHO_BY_STAGE = Object.fromEntries(KISHO.map(k => [k.stage, k]));
+const KISHO_BY_N = Object.fromEntries(KISHO.map(k => [k.n, k]));
+// 仲間。assist = 正解したあとに ときどき 助けてくれる
+const ALLIES = {
+  taka:    {name: '鷹の師範・ハヤテ', short: 'ハヤテ', desc: '弓で 追い打ち（こうげき力の0.6ばい）', dmg: .6,
+            join: [['a_taka', '見事だ。鬼将を たおすとはな。'], ['a_taka', 'おれは 鬼斬り隊の師範、鷹のハヤテ。今日から おまえと戦おう。'], ['h', 'よろしくお願いします！']]},
+  kame:    {name: '亀の師範・ゲンブ', short: 'ゲンブ', desc: '大盾で 次のダメージを半分にする', shield: true,
+            join: [['a_kame', 'よくやったなあ。わしは 亀の師範、ゲンブじゃ。'], ['a_kame', 'この大盾で おまえを守ろう。安心して 斬りこむがいい。']]},
+  tsuru:   {name: '鶴の師範・ツル', short: 'ツル', desc: 'HPを 1わり半 回復する', heal: .15,
+            join: [['a_tsuru', 'けがは ない？ 鶴の師範、ツルよ。'], ['a_tsuru', '傷は わたしが いやしてあげる。前だけ 見ていなさい。']]},
+  kitsune: {name: '狐の師範・コン', short: 'コン', desc: '幻術で MPを5 回復する', mp: 5,
+            join: [['a_kitsune', 'やるじゃん！ あたしは 狐の師範、コン！'], ['a_kitsune', '幻術で 鬼を まどわせてあげる。MPが なくなったら まかせて！']]},
+  tora:    {name: '虎の師範・トラジ', short: 'トラジ', desc: '大太刀で 追い打ち（こうげき力の0.9ばい）', dmg: .9,
+            join: [['a_tora', 'がっはっは！ いい太刀筋だ！ 虎の師範、トラジだ！'], ['a_tora', 'おまえの次の一撃に、おれの大太刀を かさねてやる！']]},
+  ryu:     {name: '龍の師範・リュウゲン', short: 'リュウゲン', desc: '二刀で 追い打ち（ボスには1.5ばい）', dmg: .8, bossX: 1.5,
+            join: [['a_ryu', '六鬼将を すべて たおしたか。わしは 鬼斬り隊の隊長、龍の師範リュウゲン。'], ['a_ryu', '鬼斬り隊の師範は ここに そろった。'], ['a_ryu', 'あとは 鬼の王・黒帝だけじゃ。共に 行こう！']]},
+  kai:     {name: '鬼斬り隊・カイ', short: 'カイ', desc: '二の太刀で 追い打ち（こうげき力の1.1ばい）', dmg: 1.1,
+            join: [['a_kai', '…これからは ぼくも 鬼斬り隊の一員だ。'], ['a_kai', '鬼の王・黒帝の御殿は この先にある。行こう、相棒！']]},
+};
+const ALLY_ORDER = ['taka', 'kame', 'tsuru', 'kitsune', 'tora', 'ryu', 'kai'];
+const ALLY_RALLY = {taka: 'ねらいは 外さん！', kame: '守りは まかせろ！', tsuru: 'みんなの傷は わたしが いやす！', kitsune: 'あたしの幻術で まどわせる！',
+  tora: '全員で 斬りこめえっ！', ryu: 'みな、ここが 正念場じゃ！', kai: 'ぼくたちの漢字で、呪いを 断ち切るぞ！'};
+Object.assign(SPEAKERS, {k6: ['陸ノ鬼将・鏡鬼', 'face_k6'], k5: ['伍ノ鬼将・鐘鬼', 'face_k5'], k4: ['肆ノ鬼将・渦鬼', 'face_k4'], k3: ['参ノ鬼将・灯籠鬼', 'face_k3'],
+  k2: ['弐ノ鬼将・雷獣鬼', 'face_k2'], k1: ['壱ノ鬼将・墨染鬼', 'face_k1'], M: ['鬼の王・黒帝', 'face_maou_h'], D: ['百鬼の王・黒帝', 'face_maou_d'], a_kai: ['カイ', 'face_rival']});
+for (const id of ALLY_ORDER) if (id !== 'kai') SPEAKERS['a_' + id] = [ALLIES[id].name, 'face_' + id];
+const hasAlly = id => (S.allies || []).includes(id);
+
+function kishoAppear(k){
+  const a = atkOf(S.lv), x = 7 - k.n;   // 壱ほど x が大きい＝強い
+  B.mon = {name: k.name, kisho: k.n, boss: true, type: 'dragon', img: 'kisho' + k.n, max: Math.round(a * (7 + x * 1.6)), atk: Math.round(14 + x * 4 + B.idx * 2)};
+  B.mon.hp = B.mon.max; B.bossShown = true;
+  renderBattle();
+  const ar = $('#arena');
+  ar.insertAdjacentHTML('beforeend', `<div class="kishocall"><b>${k.num}</b><span>ノ鬼将</span></div>`);
+  setTimeout(() => $('.kishocall')?.remove(), 2200);
+  anim($('#monArt'), 'boss-in', 1300); anim(ar, 'shake-big', 550);
+  tone([[70, .3], [66, .3], [62, .5]], 'sawtooth', .07);
+  $('#msg').textContent = `六鬼将 ${k.num}ノ鬼将・${k.name} が あらわれた！`;
+  setTimeout(() => talk(k.enter), 1500);
+}
+function kishoDown(ups){
+  const k = KISHO_BY_N[B.mon.kisho]; B.busy = true;
+  SE.win(); BGM.stop();
+  $('#monArt img').style.animation = 'none'; $('#monArt').classList.add('die-boss'); anim($('#arena'), 'shake-big', 550);
+  S.kisho = Object.assign({}, S.kisho, {[k.n]: true});
+  const bonus = 120 + (7 - k.n) * 60; ups = ups.concat(addExp(bonus)); save();
+  $('#msg').textContent = `${k.num}ノ鬼将・${k.name}を たおした！ けいけんち +${bonus}`;
+  setTimeout(() => talk(k.exit, () => allyJoin(k.ally, () => ups.length ? showLevelUp(ups, stageClear) : stageClear())), 1600);
+}
+function allyJoin(id, then){
+  const al = ALLIES[id];
+  if (hasAlly(id)) return then();
+  S.allies = (S.allies || []).concat(id); save();
+  BGM.play('allyjoin');
+  talk(al.join, () => {
+    overlay(`<div class="jobglow"><img class="px" src="assets/ally_${id}.png" alt="" style="height:150px"></div>
+      <h3>${al.name} が 仲間になった！</h3><p>鬼斬り隊の仲間が バトルで ときどき 助けてくれる。<br><b style="color:var(--gold)">${al.desc}</b></p>
+      <button class="btn gold" id="alOk">つぎへ ▶</button>`, () => { $('#alOk').onclick = () => { closeOv(); then(); }; });
+  });
+}
+// 仲間の援護（正解したあと。1回に2人まで）
+function allyAssist(){
+  const list = shuffle((S.allies || []).filter(id => ALLIES[id])).filter(() => Math.random() < .3).slice(0, 2);
+  list.forEach((id, i) => setTimeout(() => {
+    if (!B || !B.mon || B.mon.hp <= 0 && ALLIES[id].dmg) return;
+    const al = ALLIES[id], el = document.querySelector(`.ally[data-a="${id}"]`);
+    if (el) { el.src = `assets/ally_${id}_atk.png`; anim(el, 'ally-go', 600); setTimeout(() => { el.src = `assets/ally_${id}.png`; }, 600); }
+    let msg = '';
+    if (al.dmg) {
+      const d = Math.round(atkOf(S.lv) * al.dmg * (B.mon.boss && al.bossX ? al.bossX : 1) * (0.9 + Math.random() * .2));
+      B.mon.hp = Math.max(0, B.mon.hp - d); anim($('#monArt'), 'm-hurt', 450); floatText(d, '', '66%', '42%'); SE.hit();
+      $('#monHp').style.width = B.mon.hp / B.mon.max * 100 + '%'; $('#monHpLbl').textContent = `HP ${B.mon.hp}/${B.mon.max}`;
+      msg = `${al.short}の援護！ ${d}のダメージ！`;
+    }
+    if (al.heal) { const h = Math.round(maxHpOf(S.lv) * al.heal); B.heroHp = Math.min(maxHpOf(S.lv), B.heroHp + h); updateHeroHp(); fx('heal'); msg = `${al.short}の援護！ HPが${h}回復した！`; }
+    if (al.mp) { gainMp(al.mp); msg = `${al.short}の援護！ MPが${al.mp}回復した！`; }
+    if (al.shield) { B.shield = true; msg = `${al.short}の援護！ 大盾で 次のダメージを半分にする！`; }
+    toast(msg);
+  }, 380 + i * 320));
+}
+
+function corpsPanel(){
+  return `<section class="panel corps">
+    <h2>鬼斬り隊　<small>仲間 ${(S.allies || []).length}/7</small></h2>
+    <div class="corpsrow">${ALLY_ORDER.map(id => { const on = hasAlly(id), k = KISHO.find(x => x.ally === id);
+      return `<div class="member ${on ? 'on' : ''}"><img class="px" src="assets/ally_${id}.png" alt=""><span>${on ? ALLIES[id].short : '？？？'}</span>
+        <small>${on ? ALLIES[id].desc : k ? `${k.num}ノ鬼将を たおすと 仲間に` : '終章で 仲間に'}</small></div>`; }).join('')}</div>
+    <h2>六鬼将　<small>たおした ${KISHO.filter(k => (S.kisho || {})[k.n]).length}/6</small></h2>
+    <div class="kisholist">${KISHO.map(k => { const won = (S.kisho || {})[k.n];
+      return `<div class="kisho ${won ? 'won' : ''}"><b>${k.num}</b><img class="px" src="assets/kisho${k.n}.png" alt=""><span>${won ? k.name : '？？？'}</span></div>`; }).join('')}</div>
+  </section>`;
+}
+// ===== 終章・弐：鬼の王・黒帝（人の姿 → 変身）=====
+const MAOU_TALK = {
+  start: [['M', '…ようこそ、わが御殿へ。わたしが 鬼の王、黒帝だ。'], ['M', '人の姿で 失礼。この顔は 気に入っていてね。'], ['h', 'おまえが みんなを 鬼にした王か！'],
+          ['M', '鬼になれば 永遠に生きられる。漢字など 覚えなくても よいのだ。'], ['h', 'ちがう！ 漢字は みんなと つながる力だ！']],
+  transform1: [['M', '…このわたしに 傷を つけたか。'], ['M', 'よかろう。人の姿は もう いらぬ。'], ['M', '百の鬼を 食らった 真の姿を 見せてやろう！！']],
+  end: [['D', 'ば、ばかな…百の鬼の力が…消えていく…。'], ['D', 'なぜだ…なぜ 人は 学ぶのを やめない…。'], ['h', '学ぶと、明日の自分が 強くなるからだ！'], ['D', '…まぶしい…これが…朝日か…。']],
+};
+const FINAL2_STAGE = {id: 'final2', art: 'maou', bg: 'bgX1', name: '終章・弐 鬼の王', area: '鬼の王の御殿', sky: ['#200008', '#600020'], key: [0, 0], diff: 10,
+  mons: [['鬼の王・黒帝', 'rival']], items: ALL, final2: true};
+function maouMon(phase){
+  const a = atkOf(S.lv);
+  const m = phase === 1
+    ? {name: '鬼の王・黒帝', lastboss: 1, posed: true, type: 'rival', img: 'maou_h', boss: true, max: Math.round(a * 13), atk: Math.round(18 + S.lv), bg: 'bgX1'}
+    : {name: '百鬼の王・黒帝', lastboss: 2, posed: true, type: 'dragon', img: 'maou_d', boss: true, max: Math.round(a * 20), atk: Math.round(24 + S.lv * 1.3), bg: 'bgX2'};
+  m.hp = m.max; return m;
+}
+function lastDown(ups){
+  B.busy = true;
+  if (B.mon.lastboss === 1) {
+    monPose('dmg'); BGM.stop();
+    $('#msg').textContent = '黒帝の 着物が さける…！';
+    setTimeout(() => talk(MAOU_TALK.transform1, () => {
+      const ar = $('#arena');
+      ar.classList.add('maou-dark');
+      anim($('#monArt'), 'maou-swell', 2200);
+      [0, 500, 1000, 1500].forEach(t => setTimeout(() => { ar.insertAdjacentHTML('beforeend', '<div class="redflash"></div>'); setTimeout(() => $('.redflash')?.remove(), 450); anim(ar, 'shake-big', 550); tone([[55, .4], [48, .5]], 'sawtooth', .08); }, t));
+      setTimeout(() => {
+        B.mon = maouMon(2); B.bossShown = true;
+        renderBattle();
+        anim($('#monArt'), 'boss-in', 1300); anim($('#arena'), 'shake-big', 550);
+        $('#arena').insertAdjacentHTML('beforeend', '<div class="kishocall maoucall"><b>百鬼</b><span>の王</span></div>'); setTimeout(() => $('.kishocall')?.remove(), 2200);
+        $('#msg').textContent = '黒帝が 百鬼の王の すがたに 変わった！';
+        const rally = [['D', 'オオオオ…！ これが 百鬼の王の 真の すがただ！']]
+          .concat(ALLY_ORDER.filter(hasAlly).map(id => ['a_' + id, ALLY_RALLY[id]]))
+          .concat([['h', 'みんな…行くぞ！！']]);
+        setTimeout(() => talk(rally), 1400);
+      }, 2200);
+    }), 700);
+    return;
+  }
+  SE.win(); BGM.stop();
+  $('#monArt img').style.animation = 'none'; $('#monArt').classList.add('die-boss');
+  [0, 400, 800].forEach(t => setTimeout(() => { $('#arena').insertAdjacentHTML('beforeend', '<div class="bigflash"></div>'); setTimeout(() => $('.bigflash')?.remove(), 450); anim($('#arena'), 'shake-big', 550); }, t));
+  $('#msg').textContent = '百鬼の王・黒帝を たおした！';
+  setTimeout(() => talk(MAOU_TALK.end, () => ending(ups)), 1800);
+}
+function kaiJoin(ups){
+  S.cleared.final = (S.cleared.final || 0) + 1; save();
+  allyJoin('kai', () => {
+    overlay(`<h3>鬼の王の御殿への道が ひらいた！</h3><p>マップの「終章・弐 鬼の王」で、<br>鬼の王・黒帝との 最後の戦いが まっている。</p><button class="btn gold" id="kjOk">マップへ</button>`, () => {
+      $('#kjOk').onclick = () => { closeOv(); ups.length ? showLevelUp(ups, renderMap) : renderMap(); };
+    });
+  });
+}
+
+// ===== くり返し学習のしくみ =====
+// 1) 鬼の再来：問題ごとの「覚えた度」。正解するたびに 1日→3日→7日→14日 と間をあけて また出てくる
+const SRS_DAYS = [0, 1, 3, 7, 14];
+const addDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+function master(it, ok){
+  S.mastery = S.mastery || {};
+  const m = S.mastery[it.id] || {lv: 0}, t = today();
+  if (ok) {
+    if (m.lv >= 5 || (m.due && m.due > t)) return;   // まだ復習の日ではない
+    if (m.lv >= 4) { m.lv = 5; m.due = null; toast(`「${it.target}」は 免許皆伝！`); }
+    else { m.lv = (m.lv || 0) + 1; m.due = addDays(SRS_DAYS[m.lv]); }
+  } else { m.lv = 0; m.due = addDays(1); }
+  m.last = t; S.mastery[it.id] = m;
+}
+const starOf = id => { const lv = ((S.mastery || {})[id] || {}).lv || 0; return lv >= 4 ? 3 : lv >= 2 ? 2 : lv; };
+function dueItems(){ const t = today(); return ALL.filter(a => { const m = (S.mastery || {})[a.id]; return m && m.lv < 5 && m.due && m.due <= t; }).sort((a, b) => S.mastery[a.id].lv - S.mastery[b.id].lv); }
+const REV_STAGE = {id: 'rev', art: 'o11', bg: 'bgW24', name: '鬼の再来', area: 'よみがえりの洞くつ', sky: ['#18082a', '#40205a'], key: [-2, -4], diff: 3,
+  mons: [['再来の鬼', 'ghost'], ['再来の鬼', 'ghost'], ['再来の鬼', 'ghost'], ['再来の鬼', 'ghost'], ['再来の大鬼', 'golem']]};
+const MON_POOL = () => STAGE_LIST.flatMap(st => st.mons.slice(0, 4).map((m, i) => [st.art + '_' + (i + 1), m[0], m[1]]));
+
+// 2) 鬼図鑑と色ちがい
+function dexList(){
+  const L = [];
+  STAGE_LIST.forEach(st => st.mons.forEach((m, i) => L.push({key: st.art + '_' + (i + 1), name: m[0], group: `${st.ci + 1}-${st.si + 1} ${st.area}`})));
+  WEAK_STAGE.mons.forEach((m, i) => L.push({key: 'weak_' + (i + 1), name: m[0], group: 'にがて鬼の洞くつ'}));
+  KISHO.forEach(k => L.push({key: 'kisho' + k.n, name: `${k.num}ノ鬼将・${k.name}`, group: '六鬼将'}));
+  L.push({key: 'rival_m', name: '仮面の剣士', group: '終章'}, {key: 'rival', name: '鬼の剣士・カイ', group: '終章'}, {key: 'maou_h', name: '鬼の王・黒帝', group: '終章・弐'}, {key: 'maou_d', name: '百鬼の王・黒帝', group: '終章・弐'});
+  return L;
+}
+const DEX_RW = [[10, '鬼図鑑の見習い'], [30, '鬼図鑑の名人'], [60, '鬼博士'], [100, '鬼図鑑の達人'], [128, '鬼図鑑 完成']];
+function dexAdd(){
+  if (!B || !B.mon || B.hyaku) return;
+  const key = B.mon.img || `${B.art}_${B.mi + 1}`, d = S.dex[key] || {n: 0};
+  const isNew = !d.n; d.n++; if (B.mon.shiny) d.gold = true; S.dex[key] = d;
+  if (isNew) toast(`鬼図鑑に「${B.mon.name}」を登録した！`);
+  const cnt = Object.keys(S.dex).length;
+  for (const [n, title] of DEX_RW) if (cnt >= n && (S.dexRw || 0) < n) { S.dexRw = n; S.tama += 30; toast(`図鑑 ${n}体！ 称号「${title}」と 玉鋼30 を手に入れた！`); }
+}
+function showDex(){
+  const L = dexList(), got = L.filter(x => S.dex[x.key]).length, gold = L.filter(x => (S.dex[x.key] || {}).gold).length;
+  const groups = [...new Set(L.map(x => x.group))];
+  overlay(`<h3>鬼図鑑</h3><p>登録 <b style="color:var(--gold)">${got}</b> / ${L.length}　色ちがい ${gold}</p>
+    <div class="dex">${groups.map(g => `<div class="dexg"><div class="dexh">${g}</div><div class="dexrow">${L.filter(x => x.group === g).map(x => { const d = S.dex[x.key];
+      return `<div class="dexc ${d ? '' : 'unk'} ${d && d.gold ? 'gold' : ''}"><img class="px" src="assets/${x.key}.png" alt=""><span>${d ? x.name : '？？？'}</span>${d ? `<small>×${d.n}</small>` : ''}</div>`; }).join('')}</div></div>`).join('')}</div>
+    <p class="small-num">金色の「色ちがいの鬼」は 20体に1体くらいの めずらしい鬼。けいけんちが3ばい！</p>
+    <button class="btn gold" data-close>とじる</button>`);
+  document.querySelector('.ovbox').classList.add('wide');
+}
+
+// 3) 刀鍛冶（玉鋼で 刀を作る・きたえる）
+const SWORDS = [
+  {id: 'bokuto', name: '木刀', cost: 0, color: '#c8a070', desc: 'さいしょの刀'},
+  {id: 'hagane', name: '鋼の刀', cost: 30, atk: .1, color: '#dfe6f2', desc: 'こうげき力 +10%'},
+  {id: 'yomi', name: '読みの太刀', cost: 60, kind: 'yomi', kx: .35, color: '#7ac8ff', desc: 'よみの正解で ダメージ +35%'},
+  {id: 'kaki', name: '書きの太刀', cost: 60, kind: 'kaki', kx: .35, color: '#ff7a7a', desc: 'かきの正解で ダメージ +35%'},
+  {id: 'bushu', name: '部首の小太刀', cost: 60, kind: 'bushu', kx: .5, color: '#7affb0', desc: '部首の正解で ダメージ +50%'},
+  {id: 'mamori', name: '守りの刀', cost: 100, def: .25, color: '#c0c8ff', desc: 'うけるダメージ -25%'},
+  {id: 'kogane', name: '黄金の刀', cost: 120, exp: .25, color: '#ffd84d', desc: 'けいけんち +25%'},
+  {id: 'meito', name: '名刀・漢字丸', cost: 250, atk: .25, exp: .1, color: 'rainbow', desc: 'こうげき力 +25%・けいけんち +10%'},
+];
+const UPG_COST = [20, 40, 80];
+const SW = () => SWORDS.find(x => x.id === S.sword) || SWORDS[0];
+const swLv = () => (S.swords || {})[S.sword] || 0;
+const swAtk = kind => 1 + (SW().atk || 0) + (SW().kind === kind ? SW().kx : 0) + swLv() * .06;
+const swDef = () => 1 - (SW().def || 0);
+const swExp = () => 1 + (SW().exp || 0);
+const katanaSvg = c => `<svg viewBox="0 0 64 16" class="katana"><defs><linearGradient id="rb${c.length}"><stop offset="0" stop-color="#ff5a5a"/><stop offset=".5" stop-color="#ffe14d"/><stop offset="1" stop-color="#7a8cff"/></linearGradient></defs><path d="M20 8 Q42 2 62 4 Q44 8 20 10Z" fill="${c === 'rainbow' ? `url(#rb${c.length})` : c}" stroke="#000" stroke-width=".8"/><rect x="14" y="5" width="3" height="8" rx="1" fill="#c9a030" stroke="#000" stroke-width=".6"/><rect x="2" y="7" width="12" height="4" rx="1.5" fill="#3a1a1a" stroke="#000" stroke-width=".6"/></svg>`;
+function showSmith(){
+  const html = () => `<h3>刀鍛冶</h3><p>玉鋼 <b style="color:var(--gold)">${S.tama}</b>　<small>（正解・★・図鑑・再来でたまる）</small></p>
+    <div class="smith">${SWORDS.map(w => { const own = w.id in (S.swords || {}), lv = (S.swords || {})[w.id] || 0, eq = S.sword === w.id;
+      return `<div class="sw ${eq ? 'eq' : ''}">${katanaSvg(w.color)}<div class="swb"><b>${w.name}${own && lv ? ` +${lv}` : ''}</b><small>${w.desc}${lv ? `・こうげき +${lv * 6}%` : ''}</small></div>
+        <div class="swbtn">${!own ? `<button class="btn small gold" data-buy="${w.id}" ${S.tama < w.cost ? 'disabled' : ''}>作る ${w.cost}</button>`
+          : `${eq ? '<span class="nowjob">装備中</span>' : `<button class="btn small" data-eq="${w.id}">装備</button>`}${lv < 3 ? `<button class="btn small" data-up="${w.id}" ${S.tama < UPG_COST[lv] ? 'disabled' : ''}>きたえる ${UPG_COST[lv]}</button>` : '<small>最大</small>'}`}</div></div>`; }).join('')}</div>
+    <button class="btn gold" data-close>とじる</button>`;
+  const bind = () => {
+    document.querySelector('.ovbox').classList.add('wide');
+    document.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const w = SWORDS.find(x => x.id === b.dataset.buy); if (S.tama < w.cost) return; S.tama -= w.cost; S.swords[w.id] = 0; S.sword = w.id; save(); hitSnd(60, .6, 'orchestra_hit', 0); toast(`${w.name}を 作った！`); refresh(); });
+    document.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => { S.sword = b.dataset.eq; save(); SE.tap(); refresh(); });
+    document.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const id = b.dataset.up, lv = S.swords[id] || 0, c = UPG_COST[lv]; if (S.tama < c) return; S.tama -= c; S.swords[id] = lv + 1; save(); hitSnd(72, .7, 'taiko_drum', 0); hitSnd(76, .5, 'koto', .12); toast('カーン！ 刀を きたえた！'); refresh(); });
+    $('[data-close]').onclick = () => { closeOv(); renderMap(); };
+  };
+  const refresh = () => { $('.ovbox').innerHTML = html(); bind(); };
+  overlay(html(), bind);
+}
+
+// 4) 百人組手（60秒で 何体の鬼を斬れるか）
+const HYAKU_STAGE = {id: 'hyaku', art: 'o11', bg: 'bgX3', name: '百人組手', area: '鬼斬り隊の道場', sky: ['#20140c', '#604020'], key: [0, 0], diff: 4, mons: [['鬼', 'slime']]};
+function hyakuMon(){ const [img, name, type] = pick(MON_POOL()); return {name, type, img, hp: 1, max: 1, atk: 0}; }
+function startHyaku(){
+  B = {st: HYAKU_STAGE, sid: 'hyaku', art: 'o11', idx: 4, items: ALL, queue: shuffle(ALL), mi: 0, heroHp: maxHpOf(S.lv), mp: maxMpOf(S.lv), streak: 0, correct: 0, wrong: 0, busy: false, power: 1, charge: 1, guard: 0, hint: false,
+    hyaku: {count: 0, end: 0}};
+  B.mon = hyakuMon();
+  renderBattle();
+  BGM.play('kisho', [2, 8]);
+  $('#arena').insertAdjacentHTML('beforeend', '<div class="hyakubar"><i id="hyBar"></i><span id="hyTxt">60秒</span><b id="hyCnt">0体</b></div><div class="kishocall"><b>始</b><span>百人組手</span></div>');
+  setTimeout(() => $('.kishocall')?.remove(), 1500);
+  B.hyaku.end = Date.now() + 61500;
+  B.hyaku.timer = setInterval(() => {
+    if (!B || !B.hyaku) return;
+    const left = Math.max(0, B.hyaku.end - Date.now());
+    const bar = $('#hyBar'); if (bar) { bar.style.width = Math.min(100, left / 600) + '%'; bar.classList.toggle('hurry', left < 10000); }
+    const tx = $('#hyTxt'); if (tx) tx.textContent = Math.ceil(Math.min(left, 60000) / 1000) + '秒';
+    if (!left) hyakuEnd();
+  }, 100);
+}
+function hyakuCorrect(){
+  const it = B.q.it; B.busy = true;
+  B.hyaku.count++; B.correct++; B.streak++; S.total++; S.tama++;
+  master(it, true); stampToday(); track('correct'); track(B.q.kind);
+  if (S.weak[it.id]) { S.weak[it.id]--; if (S.weak[it.id] <= 0) delete S.weak[it.id]; }
+  SE.hit(); anim($('#heroArt'), 'h-atk', 300); heroPose('atk'); setTimeout(() => heroPose(''), 280);
+  const sl = document.createElement('div'); sl.className = 'slash'; sl.innerHTML = `<svg viewBox="0 0 100 100"><path d="M2 72 Q48 -12 98 36" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>`;
+  $('#arena').appendChild(sl); setTimeout(() => sl.remove(), 300);
+  $('#monArt').classList.add('die'); $('#hyCnt').textContent = B.hyaku.count + '体';
+  if (B.streak >= 5 && B.streak % 5 === 0) { B.hyaku.end += 3000; toast(`${B.streak}れんぞく！ 時間 +3秒`); }
+  setTimeout(() => {
+    if (!B || !B.hyaku || B.hyaku.done) return;
+    B.mon = hyakuMon();
+    const art = $('#monArt'); art.classList.remove('die'); art.innerHTML = `<img class="px idle-${B.mon.type}" src="assets/${B.mon.img}.png" alt="${B.mon.name}">`;
+    document.querySelector('.mon .mname').textContent = B.mon.name;
+    askNext();
+  }, 280);
+  save();
+}
+function hyakuWrong(){
+  const it = B.q.it; B.busy = true; B.streak = 0; B.wrong++;
+  master(it, false); S.weak[it.id] = Math.min(3, (S.weak[it.id] || 0) + 2); save();
+  SE.ouch(); anim($('#heroArt'), 'h-hurt', 400);
+  B.hyaku.end -= 2000; toast('まちがい… 時間 -2秒');
+  setTimeout(() => { if (B && B.hyaku && !B.hyaku.done) askNext(); }, 900);
+}
+function hyakuEnd(){
+  const h = B.hyaku; if (h.done) return; h.done = true; clearInterval(h.timer); B.busy = true;
+  BGM.play('fanfare');
+  const best = (S.hyaku || {}).best || 0, newRec = h.count > best;
+  S.hyaku = {best: Math.max(best, h.count)}; S.tama += h.count; save();
+  overlay(`<h3>百人組手 しゅうりょう！</h3><p style="font-size:44px;color:var(--gold);font-family:var(--brush)">${h.count}体</p>
+    <p>${newRec ? '<b style="color:#ff8a8a">自己ベスト 更新！</b>' : `自己ベスト ${best}体`}<br>まちがい ${B.wrong}問<br>玉鋼 +${h.count}</p>
+    <div class="row"><button class="btn" id="hyMap">マップへ</button><button class="btn gold" id="hyAgain">もういちど</button></div>`, () => {
+    $('#hyMap').onclick = () => { closeOv(); B = null; renderMap(); };
+    $('#hyAgain').onclick = () => { closeOv(); startHyaku(); };
+  });
+}
+function trainPanel(){
+  const due = dueItems().length, doneToday = S.revDone === today();
+  const L = dexList(), got = L.filter(x => S.dex[x.key]).length;
+  const totalStars = Object.values(S.stars || {}).reduce((a, b) => a + b, 0);
+  const mastered = ALL.filter(a => starOf(a.id) >= 3).length;
+  return `<section class="panel train">
+    <h2>修行の間</h2>
+    <button class="stage revst ${due ? '' : 'locked'}" id="revBtn" ${due ? '' : 'disabled'}><img class="px" src="assets/weak_2.png" alt="">
+      <div style="min-width:0"><div class="nm">鬼の再来 ${due ? `<b class="duecnt">${due}体</b>` : ''}</div>
+      <div class="meta">${due ? '前に正解した問題が よみがえった！ 忘れる前に たおそう' : doneToday ? '今日の再来は ぜんぶ たおした！ また明日' : '正解した問題が 1日・3日・7日・14日後に よみがえるよ'}</div></div></button>
+    <div class="trainrow">
+      <button class="tbtn" id="dexBtn"><b>鬼図鑑</b><span>${got}/${L.length}</span></button>
+      <button class="tbtn" id="smithBtn"><b>刀鍛冶</b><span>玉鋼 ${S.tama}</span></button>
+      <button class="tbtn" id="hyakuBtn"><b>百人組手</b><span>ベスト ${(S.hyaku || {}).best || 0}体</span></button>
+    </div>
+    <div class="small-num">覚えた漢字（★3）${mastered} / ${ALL.length}　ステージの★ ${totalStars} / ${STAGE_LIST.length * 3}　装備：${SW().name}${swLv() ? ' +' + swLv() : ''}</div>
+  </section>`;
+}
+function bindTrain(){
+  const r = $('#revBtn'); if (r) r.onclick = () => { SE.tap(); startStage('rev'); };
+  $('#dexBtn').onclick = () => { SE.tap(); showDex(); };
+  $('#smithBtn').onclick = () => { SE.tap(); showSmith(); };
+  $('#hyakuBtn').onclick = () => { SE.tap(); startHyaku(); };
+}
+
+// ===== オーバーレイ =====
+function overlay(html, after){
+  closeOv();
+  const d = document.createElement('div'); d.className = 'ov'; d.id = 'ov';
+  d.innerHTML = `<div class="ovbox" role="dialog">${html}</div>`;
+  document.body.appendChild(d);
+  d.querySelectorAll('[data-close]').forEach(b => b.onclick = closeOv);
+  after && after();
+  const f = d.querySelector('.gold') || d.querySelector('button'); f && f.focus();
+}
+function closeOv(){ const o = $('#ov'); o && o.remove(); }
+
+// ===== バトル =====
+let B = null;
+function startStage(sid){
+  const st = sid === 'weak' ? WEAK_STAGE : sid === 'rev' ? REV_STAGE : sid === 'final' ? FINAL_STAGE : sid === 'final2' ? FINAL2_STAGE : STAGE_LIST.find(s => s.id === sid);
+  const items = sid === 'weak' ? ALL.filter(a => S.weak[a.id]) : sid === 'rev' ? dueItems().slice(0, 15) : st.items;
+  if (!items.length) return;
+  const idx = st.diff;
+  B = {st, sid, art: st.art, idx, items, queue: shuffle(items), mi: 0, heroHp: maxHpOf(S.lv), mp: maxMpOf(S.lv), streak: 0, correct: 0, wrong: 0, busy: false, power: 1, charge: 1, guard: 0, hint: false};
+  spawn();
+  if (st.final) { B.mon = rivalMon(1); B.bossShown = true; }
+  renderBattle();
+  if (st.final) setTimeout(() => talk(FINAL_TALK.start), 600);
+  if (st.final2) { B.mon = maouMon(1); B.bossShown = true; renderBattle(); setTimeout(() => talk(MAOU_TALK.start), 600); }
+}
+function spawn(){
+  const m = B.st.mons[B.mi], boss = B.mi === B.st.mons.length - 1;
+  const base = (24 + B.idx * 7) * 1.5;   // 鬼のHP（前の1.5倍）
+  B.mon = {name: m[0], type: m[1], color: m[2], boss, max: Math.round(boss ? base * 2.6 : base), atk: 9 + B.idx * 3};
+  if (B.sid === 'rev') { const [img, name, type] = pick(MON_POOL()); Object.assign(B.mon, {img, name: '再来・' + name, type, revival: true}); }
+  // 色ちがいの鬼（めずらしい・金色）
+  if (!B.sp && !B.mon.boss && Math.random() < .05) { B.mon.shiny = true; B.mon.name = '金色の' + B.mon.name; }
+  B.mon.hp = B.mon.max;
+}
+function nextItem(){
+  if (B.sp) return spNext();
+  if (!B.queue.length) { const pool = S.mode === 'bushu' ? B.items.filter(bushuChar) : B.items; B.queue = shuffle(pool.length ? pool : B.items); }
+  const it = B.queue.pop();
+  // まぜる：かき55%・よみ25%・部首20%
+  const r = Math.random();
+  let kind = S.mode === 'mix' ? (r < .55 ? 'kaki' : r < .8 ? 'yomi' : 'bushu') : S.mode;
+  if (kind === 'bushu' && !bushuChar(it)) kind = S.mode === 'bushu' ? 'yomi' : 'kaki';
+  return {it, kind, bch: kind === 'bushu' ? bushuChar(it) : null};
+}
+function renderBattle(){
+  const st = B.st;
+  playStageBGM();
+  $('#app').innerHTML = `
+  <div class="top">
+    <button class="btn small" id="back">◀ マップ</button>
+    <div class="area">${st.ch ? `${st.ci + 1}-${st.si + 1} ` : ''}${st.area}</div>
+    <div class="dots">${st.mons.map((_, i) => `<i class="${i < B.mi ? 'done' : i === B.mi ? 'now' : ''}"></i>`).join('')}</div>
+  </div>
+  <div class="arena ${B.mon.boss ? 'bossfight' : ''} ${B.sp ? 'spfight' : ''}" id="arena" style="background:url(assets/${B.mon.bg || (B.mon.phase === 2 ? 'bgW27' : st.bg)}.jpg),linear-gradient(${st.sky[0]},${st.sky[1]})">
+    <div class="mon ${B.mon.boss ? 'boss' : ''}" id="mon">
+      <div class="mname ${B.mon.rival ? 'rivalname' : ''} ${B.mon.kisho || B.mon.lastboss ? 'kishoname' : ''}">${B.mon.kisho ? KISHO_BY_N[B.mon.kisho].num + 'ノ鬼将・' : B.mon.lastboss ? 'ラスボス・' : B.mon.rival ? (B.mon.phase === 2 ? 'ラスボス・' : 'ライバル・') : B.mon.boss ? 'ボス・' : ''}${B.mon.name}</div>
+      <div id="monArt" class="${B.mon.shiny ? 'shiny' : ''} ${B.mon.revival ? 'revival' : ''}"><img class="px idle-${B.mon.type}" src="assets/${B.mon.img || B.art + '_' + (B.mi + 1)}.png" alt="${B.mon.name}"></div>
+      <div class="bar hp"><i id="monHp" style="width:${B.mon.hp / B.mon.max * 100}%;background:var(--red)"></i></div>
+      <div class="hplabel" id="monHpLbl">${B.sp ? '封印' : 'HP'} ${B.mon.hp}/${B.mon.max}</div>
+    </div>
+    ${(S.allies || []).length && !B.sp ? `<div class="allies">${(S.allies || []).slice(-4).map(id => `<img class="px ally" data-a="${id}" src="assets/ally_${id}.png" alt="${ALLIES[id].short}">`).join('')}</div>` : ''}
+    <div class="hero ${S.lv >= 30 ? 'aura2' : S.lv >= 20 ? 'aura1' : ''}" id="hero">
+      <div id="heroArt">${heroImg(S.lv)}</div>
+      <div class="bar hp"><i id="heroHp" style="width:${B.heroHp / maxHpOf(S.lv) * 100}%"></i></div>
+      ${mpBarHtml()}
+      <div class="hplabel" id="heroHpLbl">Lv${S.lv}　HP ${B.heroHp}/${maxHpOf(S.lv)}　MP ${B.mp}/${maxMpOf(S.lv)}</div>
+    </div>
+  </div>
+  <div class="msg" id="msg">${B.mon.name}があらわれた！</div>
+  ${spSealBar()}
+  ${itemBar()}
+  <section class="sheet" id="sheet"></section>`;
+  $('#back').onclick = () => { spTimerStop(); if (B && B.hyaku) clearInterval(B.hyaku.timer); B = null; renderMap(); };
+  bindItems();
+  const t = heroTier(S.lv); ['atk', 'dmg'].forEach(p => { const im = new Image(); im.src = heroSrc(S.lv, p); });
+  if (B.mon.boss && B.mon.hp === B.mon.max && !B.bossShown) {
+    B.bossShown = true;
+    anim($('#monArt'), 'boss-in', 1300); anim($('#arena'), 'shake-big', 550);
+    $('#arena').insertAdjacentHTML('beforeend', '<div class="bosscall">BOSS</div>');
+    setTimeout(() => $('.bosscall')?.remove(), 1700);
+    tone([[90, .25], [70, .35], [55, .5]], 'sawtooth', .06);
+    $('#msg').textContent = `ボスの${B.mon.name}があらわれた！`;
+  }
+  askNext();
+}
+function anim(el, cls, ms){ if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), ms); }
+// 剣士のポーズを切りかえる（'' = 待機, 'atk' = 攻撃, 'dmg' = ダメージ）
+function heroPose(p){ const im = $('#heroArt img'); if (!im) return; im.src = heroSrc(S.lv, p); im.style.animation = p ? 'none' : ''; }
+function askNext(){
+  B.busy = false;
+  setTimeout(applyHint, 0);
+  if (B.sp) setTimeout(() => B && B.sp && spTimerStart(), 0);
+  B.q = nextItem();
+  const {it, kind} = B.q;
+  const handMode = kind === 'kaki' && !B.hyaku && (S.kaki === 'hand' || (B.sp && B.sp.rule.hand));
+  const nChoice = B.sp ? B.sp.rule.n : 4;
+  const bch = B.q.bch;
+  const sentence = kind === 'bushu'
+    ? `<div class="bushuq"><span class="bk">${esc(bch)}</span><span class="bw">${esc(it.pre)}<b>${esc(it.target)}</b>${esc(it.post)}</span></div>`
+    : kind === 'yomi'
+    ? `${esc(it.pre)}<span class="t">${esc(it.target)}</span>${esc(it.post)}`
+    : `${esc(it.pre)}<span class="h">${esc(it.yomi)}</span>${esc(it.post)}`;
+  const head = `<div class="qhead"><span class="tag ${kind}">${kind === 'bushu' ? `部首：「${esc(bch)}」の部首の名前は？` : kind === 'yomi' ? 'よみ：赤線の読みは？' : 'かき：□を漢字にすると？'}</span><span class="streak">${B.streak >= 2 ? B.streak + 'れんぞく！' : ''}</span></div>`;
+  if (!handMode) {
+    const choices = kind === 'bushu' ? bushuChoices(bch, nChoice) : kind === 'yomi' ? yomiChoices(it, nChoice) : kakiChoices(it, nChoice);
+    const correct = kind === 'bushu' ? BUSHU[bch][1] : kind === 'yomi' ? it.yomi : it.target;
+    $('#sheet').innerHTML = `${head}<div class="sentence">${sentence}</div>
+      <div class="choices ${choices.length > 4 ? 'six' : ''} ${kind === 'bushu' ? 'bushuc' : ''}">${choices.map((c, i) => `<button class="choice" id="c${i}" data-v="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
+    document.querySelectorAll('.choice').forEach(b => b.onclick = () => {
+      if (B.busy) return; B.busy = true;
+      const ok = b.dataset.v === correct;
+      document.querySelectorAll('.choice').forEach(x => { x.disabled = true; if (x.dataset.v === correct) x.classList.add('ok'); });
+      if (!ok) b.classList.add('ng');
+      ok ? onCorrect() : onWrong();
+    });
+  } else {
+    const n = [...it.target].length;
+    $('#sheet').innerHTML = `${head}<div class="sentence">${sentence}</div>
+      <div class="canvas-wrap"><canvas class="pad" id="pad"></canvas></div>
+      <div class="row" id="handBtns"><button class="btn" id="undo">↶ 1画もどす</button><button class="btn" id="clr">ぜんぶけす</button><button class="btn gold" id="reveal">こたえあわせ</button></div>`;
+    setupPad(n);
+    $('#clr').onclick = () => setupPad(n);
+    $('#undo').onclick = () => { const cv = $('#pad'); if (cv._strokes.length) { cv._strokes.pop(); cv._redraw(); } };
+    $('#reveal').onclick = () => {
+      if (RECOG.ready() && [...it.target].every(RECOG.has)) return autoGrade(it);
+      selfGrade(it);
+    };
+  }
+}
+// 書いた画を正しい漢字・似た漢字と比べて自動で丸つけ
+function autoGrade(it){
+  const cv = $('#pad'), strokes = cv._strokes || [];
+  if (!strokes.length) { $('#judgeMsg')?.remove(); $('#handBtns').insertAdjacentHTML('beforebegin', '<div class="judge" id="judgeMsg">マスに漢字を書いてから押してね</div>'); return; }
+  if (B.busy) return; B.busy = true;
+  const chars = [...it.target], n = chars.length, box = cv._box;
+  // 画の真ん中の位置で、どのマスに書いた画かを決める
+  const cells = chars.map(() => []);
+  for (const s of strokes) {
+    const cx = s.reduce((t, p) => t + p[0], 0) / s.length, cy = s.reduce((t, p) => t + p[1], 0) / s.length;
+    const cols = cv._cols, col = Math.max(0, Math.min(cols - 1, Math.floor(cx / box)));
+    cells[Math.max(0, Math.min(n - 1, Math.floor(cy / box) * cols + col))].push(s);
+  }
+  const results = chars.map((ch, i) => RECOG.judge(cells[i], ch));
+  const ok = results.every(r => r && r.ok);
+  const notes = results.map((r, i) => {
+    if (r.ok) return '';
+    if (r.empty) return `${n > 1 ? (i + 1) + '文字目が' : ''}書かれていないよ`;
+    const head = n > 1 ? `${i + 1}文字目：` : '';
+    if (Math.abs(r.nIn - r.nTpl) >= 2) return `${head}画の数がちがうよ（${r.nIn}画 → 正しくは${r.nTpl}画）`;
+    if (r.best && r.best !== chars[i]) return `${head}「${esc(r.best)}」に見えるよ`;
+    return `${head}形をよく見てもういちど`;
+  }).filter(Boolean);
+  cv.style.pointerEvents = 'none';
+  $('#judgeMsg')?.remove();
+  $('#handBtns').outerHTML = `<div class="judge ${ok ? 'ok' : 'ng'}" id="judgeMsg"><b>${ok ? '◯ せいかい！' : '✕ ざんねん'}</b>${notes.length ? '<br>' + notes.join('<br>') : ''}</div>`;
+  if (ok) { $('#judgeMsg').insertAdjacentHTML('afterend', `<div class="answer">こたえ：<b>${esc(it.target)}</b>${esc(it.post)}</div>`); setTimeout(onCorrect, 700); return; }
+  onWrong(false);
+  setTimeout(() => {
+    const r = $('#sheet .row'); if (!r) return;
+    r.insertAdjacentHTML('beforeend', '<button class="btn small" id="override">判定がおかしい？ ◯にする</button>');
+    $('#override').onclick = () => {
+      $('#override').remove();
+      if (S.weak[it.id]) { S.weak[it.id] -= 2; if (S.weak[it.id] <= 0) delete S.weak[it.id]; }
+      B.wrong--; B.heroHp = Math.min(maxHpOf(S.lv), B.heroHp + Math.round(B.mon.atk)); updateHeroHp();
+      document.querySelectorAll('#sheet .row, #sheet .answer').forEach(x => x.remove());
+      $('#judgeMsg').outerHTML = '<div class="judge ok" id="judgeMsg"><b>◯ せいかいにしたよ</b></div>';
+      B.busy = true; onCorrect();
+    };
+  }, 350);
+}
+function selfGrade(it){
+  const html = `<div class="answer">こたえ：<b>${esc(it.target)}</b>${esc(it.post)}</div>
+    <div class="row"><button class="btn gold" id="selfOk">○ あってた！</button><button class="btn" id="selfNg">× まちがえた</button></div>`;
+  const hb = $('#handBtns');
+  hb ? hb.outerHTML = html : $('#sheet').insertAdjacentHTML('beforeend', html);
+  $('#selfOk').onclick = () => { if (B.busy) return; B.busy = true; onCorrect(); };
+  $('#selfNg').onclick = () => { if (B.busy) return; B.busy = true; onWrong(true); };
+}
+function setupPad(n){
+  // マスは最大220px。横に入りきらないときは2段・3段に折り返す
+  const cv = $('#pad'), avail = Math.max(120, ($('#sheet').clientWidth || 360) - 40);
+  const cols = Math.max(1, Math.min(n, Math.floor(avail / 220) || 1)), rows = Math.ceil(n / cols);
+  const box = Math.min(220, Math.floor(avail / cols)), W = box * cols, H = box * rows;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  delete cv.dataset.drawn; cv.style.pointerEvents = ''; cv._strokes = []; cv._box = box; cv._cols = cols;
+  const drawGrid = () => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    const x = (i % cols) * box, y = Math.floor(i / cols) * box;
+    g.strokeStyle = '#d9c9a3'; g.lineWidth = 1; g.setLineDash([6, 6]);
+    g.beginPath(); g.moveTo(x + box / 2, y); g.lineTo(x + box / 2, y + box); g.moveTo(x, y + box / 2); g.lineTo(x + box, y + box / 2); g.stroke();
+    g.setLineDash([]); g.strokeStyle = '#22202a'; g.lineWidth = 2; g.strokeRect(x + 1, y + 1, box - 2, box - 2);
+  }
+  if (n % cols) { g.fillStyle = '#f4ecd6'; g.fillRect((n % cols) * box, (rows - 1) * box, W - (n % cols) * box, box); }
+  if (cv._hint && window.STROKES) {   // ひらめき：お手本をうすく
+    g.save(); g.strokeStyle = 'rgba(80,160,255,.28)'; g.lineWidth = Math.max(4, box / 22); g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash([]);
+    cv._hint.forEach((ch, i) => {
+      const ox = (i % cols) * box, oy = Math.floor(i / cols) * box;
+      for (const f of STROKES[ch] || []) { g.beginPath(); for (let k = 0; k < f.length; k += 2) { const x = ox + f[k] / 109 * box * .85 + box * .075, y = oy + f[k + 1] / 109 * box * .85 + box * .075; k ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+    });
+    g.restore();
+  }
+  };
+  drawGrid();
+  const pen = () => { g.strokeStyle = '#22202a'; g.lineWidth = Math.max(3, box / 34); g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash([]); };
+  pen();
+  // 1画もどす：マスをかき直して、のこっている画をもう一度かく
+  cv._redraw = () => {
+    drawGrid(); pen();
+    for (const st of cv._strokes) { g.beginPath(); g.moveTo(st[0][0], st[0][1]); g.lineTo(st[0][0] + .1, st[0][1]); for (const [x, y] of st.slice(1)) g.lineTo(x, y); g.stroke(); }
+    if (!cv._strokes.length) delete cv.dataset.drawn;
+  };
+  // ペンを使ったら、手のひら（指のタッチ）は線にしない。同時に1本のポインターだけ追う
+  let active = null;
+  const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)]; };
+  cv.onpointerdown = e => {
+    e.preventDefault();
+    if (e.pointerType === 'pen') PEN_USED = true;
+    if (active !== null || (PEN_USED && e.pointerType === 'touch')) return;
+    active = e.pointerId; cv.dataset.drawn = '1';
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    const [x, y] = pos(e); cv._strokes.push([[x, y]]);
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + .1, y); g.stroke();
+  };
+  cv.onpointermove = e => {
+    if (e.pointerId !== active) return;
+    e.preventDefault();
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ce of (evs.length ? evs : [e])) { const [x, y] = pos(ce); cv._strokes[cv._strokes.length - 1].push([x, y]); g.lineTo(x, y); }
+    g.stroke();
+  };
+  cv.onpointerup = cv.onpointercancel = e => { if (e.pointerId === active) active = null; };
+}
+function floatText(txt, cls, x, y){
+  const f = document.createElement('div'); f.className = 'float ' + cls; f.textContent = txt;
+  f.style.left = x; f.style.top = y; $('#arena').appendChild(f); setTimeout(() => f.remove(), 950);
+}
+function onCorrect(){
+  if (B.sp) return spCorrect();
+  if (B.hyaku) return hyakuCorrect();
+  const {it} = B.q;
+  master(it, true); S.tama += B.mon.shiny ? 3 : 1;
+  B.streak++; B.correct++; S.total++;
+  stampToday();
+  track('correct'); track(B.q.kind); track('streak', B.streak);
+  if (B.q.kind === 'kaki' && S.kaki === 'hand') track('hand');
+  if (B.sid === 'weak') track('weak');
+  if (S.weak[it.id]) { S.weak[it.id]--; if (S.weak[it.id] <= 0) delete S.weak[it.id]; }
+  const ult = hasSkill('hissatsu') && B.streak >= 5 && B.streak % 5 === 0;
+  const crit = !ult && hasSkill('tame') && B.streak >= 3 && B.streak % 3 === 0;
+  const charge = B.charge || 1, chargeHeal = B.chargeHeal; B.charge = 1; B.chargeHeal = false; B.hint = false;
+  gainMp(MP_GAIN());
+  if (chargeHeal) { B.heroHp = Math.min(maxHpOf(S.lv), B.heroHp + Math.round(maxHpOf(S.lv) * .2)); updateHeroHp(); }
+  let base = atkOf(S.lv) * swAtk(B.q.kind) * charge * (B.power || 1) * (hasSkill('aura') ? 1.2 : 1) * (B.mon.boss && hasSkill('tenku') ? 1.5 : 1);
+  const hits = (ult ? [3.2] : crit ? (hasSkill('renzoku') ? [1.5, 1.5] : [1.8]) : [1]).map(m => Math.round(base * m * (0.9 + Math.random() * .2)));
+  const dmg = hits.reduce((a, b) => a + b, 0);
+  const tier = heroTier(S.lv), slashCol = S.sword !== 'bokuto' ? SW().color : jobId() === 'hero' ? SLASH_COLOR[tier - 1] : JOB().color;
+  if (ult || crit) { $('#arena').insertAdjacentHTML('beforeend', `<div class="skillcall">${ult ? 'ひっさつ・漢字斬り！' : hits.length > 1 ? 'れんぞくぎり！' : 'ためぎり！'}</div>`); setTimeout(() => $('.skillcall')?.remove(), 1200); }
+  if (hasSkill('iyashi')) { B.heroHp = Math.min(maxHpOf(S.lv), B.heroHp + Math.round(maxHpOf(S.lv) * .06)); updateHeroHp(); }
+  anim($('#heroArt'), 'h-atk', 450);
+  setTimeout(() => heroPose('atk'), 90);
+  setTimeout(() => heroPose(''), 430);
+  setTimeout(() => {
+    (crit || ult) ? SE.crit() : SE.hit();
+    const rb = slashCol === 'rainbow';
+    hits.forEach((h, k) => setTimeout(() => {
+      if (!B || !$('#arena')) return;
+      const sl = document.createElement('div'); sl.className = 'slash';
+      if (ult) sl.style.cssText = 'width:200px;height:200px;right:12%;top:20px';
+      sl.innerHTML = `<svg viewBox="0 0 100 100">${rb ? '<defs><linearGradient id="rbw"><stop offset="0" stop-color="#ff5a5a"/><stop offset=".33" stop-color="#ffe14d"/><stop offset=".66" stop-color="#5affb0"/><stop offset="1" stop-color="#7a8cff"/></linearGradient></defs>' : ''}<path d="${k % 2 ? 'M2 30 Q55 110 98 62' : 'M2 72 Q48 -12 98 36'}" fill="none" stroke="#fff" stroke-width="${ult ? 12 : 8}" stroke-linecap="round"/><path d="${k % 2 ? 'M8 22 Q58 100 98 52' : 'M8 82 Q52 2 98 46'}" fill="none" stroke="${rb ? 'url(#rbw)' : (crit || ult) ? '#f2c14e' : slashCol}" stroke-width="${ult ? 7 : 4}" stroke-linecap="round"/></svg>`;
+      $('#arena').appendChild(sl); setTimeout(() => sl.remove(), 400);
+      if (ult) { $('#arena').insertAdjacentHTML('beforeend', '<div class="bigflash"></div>'); setTimeout(() => $('.bigflash')?.remove(), 520); anim($('#arena'), 'shake-big', 550); }
+      if (k) SE.hit();
+      anim($('#monArt'), 'm-hurt', 450);
+      if (B.mon.posed) { monPose('dmg'); setTimeout(() => B && B.mon.hp > 0 && monPose(''), 500); }
+      floatText(h, (crit || ult) ? 'crit' : '', (58 + k * 8) + '%', (30 - k * 8) + '%');
+    }, k * 230));
+    B.mon.hp = Math.max(0, B.mon.hp - dmg);
+    $('#monHp').style.width = B.mon.hp / B.mon.max * 100 + '%';
+    $('#monHpLbl').textContent = `HP ${B.mon.hp}/${B.mon.max}`;
+    if (B.mon.hp > 0) allyAssist();
+    $('#msg').textContent = ult ? `ひっさつ・漢字斬り！ ${B.mon.name}に${dmg}のダメージ！` : crit ? `かいしんの一撃！ ${B.mon.name}に${dmg}のダメージ！` : `せいかい！ ${B.mon.name}に${dmg}のダメージ！`;
+    const gain = (Math.round(10 + B.idx * 2) + (crit ? 5 : 0)) * (B.mon.shiny ? 2 : 1);
+    const ups = addExp(gain);
+    save();
+    setTimeout(() => {
+      if (B.mon.hp <= 0) return defeat(ups);
+      if (ups.length) return showLevelUp(ups, askNext);
+      askNext();
+    }, (S.allies || []).length ? 1200 : 850);
+  }, 180);
+}
+function onWrong(self){
+  if (B.hyaku) return hyakuWrong();
+  const {it, kind} = B.q;
+  master(it, false);
+  B.streak = 0; B.wrong++;
+  S.weak[it.id] = Math.min(3, (S.weak[it.id] || 0) + 2);
+  save();
+  if (B.sp) spTimerStop();
+  const boss = B.mon.boss, guarded = B.guard > 0;
+  B.hint = false;
+  if (guarded) { B.guard--; refreshItemBar(); }
+  if (B.sp) { B.queue.splice(Math.floor(Math.random() * (B.queue.length + 1)), 0, B.sp.seals.find(x => x.key === B.q.seal)); if (!guarded) spHeal(); }
+  anim($('#monArt'), boss ? 'm-atk-boss' : 'm-atk', boss ? 750 : 600);
+  if (B.mon.posed) { setTimeout(() => monPose('atk'), 150); setTimeout(() => monPose(''), 800); }
+  setTimeout(() => {
+    SE.ouch();
+    anim($('#heroArt'), 'h-hurt', 500); heroPose('dmg'); setTimeout(() => heroPose(''), 650);
+    if (boss) { anim($('#arena'), 'shake-big', 550); $('#arena').insertAdjacentHTML('beforeend', '<div class="redflash"></div>'); setTimeout(() => $('.redflash')?.remove(), 500); }
+    const dmg = guarded ? 0 : Math.round(B.mon.atk * (0.85 + Math.random() * .3) * (hasSkill('tate') ? .7 : 1) * (B.shield ? .5 : 1) * swDef());
+    B.dmgTaken = (B.dmgTaken || 0) + dmg;
+    if (!guarded) B.shield = false;
+    if (guarded) fx('clone');
+    B.heroHp = Math.max(0, B.heroHp - dmg);
+    if (!boss) anim($('#arena'), 'shake', 400);
+    floatText(dmg, 'ouch', '16%', '45%');
+    updateHeroHp();
+    const artName = B.mon.kisho ? `「${KISHO_BY_N[B.mon.kisho].art}」` : B.mon.lastboss === 2 ? '「百鬼夜行」' : B.mon.lastboss === 1 ? '「黒扇の風」' : '';
+    $('#msg').textContent = guarded ? `${B.mon.name}のこうげき！ しかし ぶんしんが みがわりになった！` : `${B.mon.name}の${artName || 'こうげき'}！ ${dmg}のダメージ…`;
+    if ((B.mon.kisho || B.mon.lastboss) && B.mon.hp > 0) {   // 強い鬼は 傷を再生する
+      const rg = Math.min(B.mon.max - B.mon.hp, Math.round(B.mon.max * .06));
+      if (rg > 0) { B.mon.hp += rg; $('#monHp').style.width = B.mon.hp / B.mon.max * 100 + '%'; $('#monHpLbl').textContent = `HP ${B.mon.hp}/${B.mon.max}`; $('#msg').textContent += ` ${B.mon.name}は 傷を ${rg} 再生した！`; }
+    }
+    const ans = kind === 'bushu' && B.q.bch
+      ? `<div class="answer">「<b>${esc(B.q.bch)}</b>」の部首は <b>${esc(BUSHU[B.q.bch][0])}</b>（${esc(BUSHU[B.q.bch][1])}）</div>`
+      : `<div class="answer">正しくは「${esc(it.pre)}<b>${esc(it.target)}</b>${esc(it.post)}」<br>よみ：${esc(it.yomi)}</div>`;
+    const sheet = $('#sheet');
+    const old = sheet.querySelector('.answer'); old && old.remove();
+    sheet.querySelectorAll('.row').forEach(r => r.remove());
+    sheet.insertAdjacentHTML('beforeend', `${self ? '' : ans}<div class="row"><button class="btn gold" id="goNext">つぎへ ▶</button></div>`);
+    if (self) sheet.insertAdjacentHTML('beforeend', '<div class="answer" style="font-size:16px">にがてリストに入れたよ。あとで復習しよう！</div>');
+    $('#goNext').focus();
+    $('#goNext').onclick = () => {
+      if (B.heroHp <= 0) {
+        BGM.play('lose');
+        overlay(`<div>${heroImg(S.lv)}</div><h3>やられてしまった…</h3><p>でも経験値も、あいてにあたえたダメージもそのまま！<br>もういちど立ち上がろう。</p><button class="btn gold" id="revive">ふっかつする</button>`, () => {
+          $('#revive').onclick = () => { closeOv(); B.heroHp = maxHpOf(S.lv); B.mp = maxMpOf(S.lv); renderBattle(); };
+        });
+      } else askNext();
+    };
+  }, boss ? 420 : 330);
+}
+function updateHeroHp(){
+  $('#heroHp').style.width = B.heroHp / maxHpOf(S.lv) * 100 + '%';
+  updateMp();
+}
+function addExp(n){
+  n = Math.round(n * swExp());
+  S.exp += n; const ups = [];
+  while (S.exp >= needExp(S.lv)) { S.exp -= needExp(S.lv); const before = titleOf(S.lv); S.lv++; ups.push({lv: S.lv, newTitle: titleOf(S.lv) !== before ? titleOf(S.lv) : null}); }
+  return ups;
+}
+function showLevelUp(ups, then){
+  SE.lvup();
+  const last = ups[ups.length - 1], oldLv = last.lv - ups.length;
+  const newGear = jobId() === 'hero' && heroTier(oldLv) !== heroTier(S.lv);
+  const newJobs = Object.entries(JOBS).filter(([, j]) => j.lv > oldLv && j.lv <= S.lv);
+  const newSkills = SKILLS.filter(k => k.lv > oldLv && k.lv <= S.lv);
+  const newTitle = titleOf(oldLv) !== titleOf(S.lv) ? titleOf(S.lv) : null;
+  if (B) { B.heroHp = maxHpOf(S.lv); B.mp = maxMpOf(S.lv); }
+  overlay(`${newGear ? `<div class="lvpair"><div>${heroImg(oldLv)}</div><div class="arrow">▶</div><div>${heroImg(S.lv)}</div></div>` : `<div>${heroImg(S.lv)}</div>`}
+    <h3>レベルアップ！</h3><p>Lv ${oldLv} → <b style="color:var(--gold)">Lv ${S.lv}</b><br>こうげき ${atkOf(S.lv)}　さいだいHP ${maxHpOf(S.lv)}<br>HPとMPが全回復した！</p>
+    ${newGear || newTitle || newSkills.length || newJobs.length ? `<div class="lvnew">
+      ${newGear ? `<div>そうびが <b>パワーアップ</b> した！</div>` : ''}
+      ${newTitle ? `<div>しょうごう「<b>${newTitle}</b>」をてにいれた！</div>` : ''}
+      ${newSkills.map(k => `<div>わざ「<b>${k.name}</b>」をおぼえた！<br><span style="color:var(--muted)">${k.desc}</span></div>`).join('')}
+      ${newJobs.map(([, j]) => `<div><b>${j.name}</b> に転職できるようになった！<br><span style="color:var(--muted)">マップの「転職の神殿」で 職業をかえられるよ</span></div>`).join('')}
+      ${S.lv === 20 ? '<div>剣士が <b>金色のオーラ</b> をまとった！</div>' : ''}${S.lv === 30 ? '<div>剣士が <b>にじ色のオーラ</b> をまとった！</div>' : ''}
+    </div>` : ''}
+    <button class="btn gold" id="lvOk">つぎへ ▶</button>`, () => {
+      $('#lvOk').onclick = () => {
+        closeOv();
+        if (B && $('#heroArt')) {
+          $('#heroArt').innerHTML = heroImg(S.lv);
+          $('#hero').className = 'hero ' + (S.lv >= 30 ? 'aura2' : S.lv >= 20 ? 'aura1' : '');
+          updateHeroHp();
+        }
+        then();
+      };
+    });
+  if (newGear) tone([[523,.1],[784,.1],[1047,.1],[1568,.4]], 'triangle', .07);
+}
+function defeat(ups){
+  dexAdd();
+  if (B.mon.rival) return rivalDown(ups);
+  if (B.mon.kisho) return kishoDown(ups);
+  if (B.mon.lastboss) return lastDown(ups);
+  SE.win();
+  $('#monArt img').style.animation = 'none';
+  $('#monArt').classList.add(B.mon.boss ? 'die-boss' : 'die');
+  if (B.mon.boss) anim($('#arena'), 'shake-big', 550);
+  const bonus = Math.round(B.mon.boss ? 60 + B.idx * 10 : 15 + B.idx * 3) * (B.mon.shiny ? 3 : 1);
+  const more = addExp(bonus); ups = ups.concat(more);
+  S.beaten[B.sid] = (S.beaten[B.sid] || 0) + 1;
+  track('kill'); if (B.mon.boss) track('boss');
+  $('#msg').textContent = `${B.mon.name}をたおした！ けいけんち +${bonus}`;
+  save();
+  setTimeout(() => {
+    const after = () => {
+      if (B.mon.boss) {
+        const k = KISHO_BY_STAGE[B.sid];
+        if (k && !(S.kisho || {})[k.n] && !B.kishoDone) { B.kishoDone = true; return kishoAppear(k); }
+        return stageClear();
+      }
+      const ev = RIVAL_EVENTS[B.sid];
+      if (ev && B.mi === ev.after && !(S.rival || {})[B.sid] && !B.rivalDone) { B.rivalDone = true; return rivalAppear(ev); }
+      B.mi++; spawn(); renderBattle();
+      $('#msg').textContent = `${B.mon.name}があらわれた！`;
+    };
+    ups.length ? showLevelUp(ups, after) : after();
+  }, B.mon.boss ? 1600 : 900);
+}
+function stageClear(){
+  BGM.play('fanfare');
+  const extra = ['weak', 'rev'].includes(B.sid);
+  const firstClear = !extra && !S.cleared[B.sid];
+  track('clear');
+  if (!extra) S.cleared[B.sid] = (S.cleared[B.sid] || 0) + 1;
+  const nextSt = B.st.ch && B.st.ch.stages[B.st.si + 1];
+  save();
+  const rate = Math.round(B.correct / Math.max(1, B.correct + B.wrong) * 100);
+  // ★1 クリア／★2 正答率90%以上／★3 ダメージを受けずにクリア
+  const got = [true, rate >= 90, !B.dmgTaken], nStar = got.filter(Boolean).length;
+  let starMsg = '';
+  if (!extra && B.st.ch) {
+    const old = (S.stars || {})[B.sid] || 0;
+    if (nStar > old) { S.stars[B.sid] = nStar; S.tama += (nStar - old) * 5; starMsg = `<p style="color:var(--gold)">★ ${nStar - old}こ ふえた！ 玉鋼 +${(nStar - old) * 5}</p>`; }
+  }
+  if (B.sid === 'rev') { S.revDone = today(); S.tama += 10; starMsg = '<p style="color:var(--gold)">今日の 鬼の再来を たおした！ 玉鋼 +10</p>'; }
+  save();
+  const stars = `${'★'.repeat(nStar)}${'☆'.repeat(3 - nStar)}`;
+  const starList = `<div class="starlist"><span class="on">★ クリア</span><span class="${got[1] ? 'on' : ''}">★ 正答率90%以上</span><span class="${got[2] ? 'on' : ''}">★ ダメージを受けない</span></div>`;
+  overlay(`<div>${heroImg(S.lv)}</div><h3>ステージクリア！</h3><p style="font-size:28px;color:var(--gold)">${stars}</p>${B.st.ch ? starList : ''}${starMsg}
+    <p>${B.st.ch ? `${B.st.ci + 1}-${B.st.si + 1} ` : ''}${B.st.area}<br>正解 ${B.correct}問・まちがい ${B.wrong}問（正答率 ${rate}%）</p>
+    ${B.wrong ? '<p style="font-size:14px;color:var(--muted)">まちがえた問題は「にがて復習」で出てくるよ</p>' : ''}
+    ${nextSt && firstClear ? `<p style="color:var(--gold)">${nextSt.ci + 1}-${nextSt.si + 1}「${nextSt.area}」に行けるようになった！</p>` : ''}
+    <div class="row"><button class="btn" id="again">もういちど</button>${nextSt ? '<button class="btn gold" id="toNext">つぎのステージへ</button>' : ''}<button class="btn ${nextSt ? '' : 'gold'}" id="toMap">マップへ</button></div>`, () => {
+      const sid = B.sid;
+      if (nextSt) $('#toNext').onclick = () => { closeOv(); startStage(nextSt.id); };
+      $('#toMap').onclick = () => { closeOv(); B = null; renderMap(); };
+      $('#again').onclick = () => { closeOv(); startStage(sid); };
+    });
+}
+
+renderMap();
+</script>
+</body></html>
